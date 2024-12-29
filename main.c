@@ -1,196 +1,226 @@
-
 #include <stdlib.h>
 #include <time.h>
 #include <SDL2/SDL.h>
 
-#define SIZE 4 // The board is 4x4
-#define WIN_SCORE 2048 // This is how you win the game
+#define SIZE 4
+#define TARGET 2048
 
-int board[SIZE][SIZE]; // The game board
-int score = 0; // Player's score
+int grid[SIZE][SIZE];
+int total_score = 0;
 
-// Set up the board (empty to start, then add two random numbers)
-void initializeBoard() {
-    // Fill the board with zeros (empty spaces)
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            board[i][j] = 0;
+// Function to initialize the grid
+void initializeGrid() {
+    for (int r = 0; r < SIZE; r++) {
+        for (int c = 0; c < SIZE; c++) {
+            grid[r][c] = 0;
         }
     }
 
-    // Seed random numbers
+    // Add two random values to the grid
     srand(time(NULL));
-
-    // Add two starting tiles (2 or 4)
-    for (int k = 0; k < 2; k++) {
-        int x, y;
+    for (int i = 0; i < 2; i++) {
+        int row, col;
         do {
-            x = rand() % SIZE; // Random row
-            y = rand() % SIZE; // Random column
-        } while (board[x][y] != 0); // Make sure the spot is empty
-        board[x][y] = (rand() % 2 + 1) * 2; // Either 2 or 4
+            row = rand() % SIZE;
+            col = rand() % SIZE;
+        } while (grid[row][col] != 0);
+        grid[row][col] = (rand() % 2 + 1) * 2; // Adds either 2 or 4
     }
 }
 
-// Print the board in the console
-void printBoard() {
-    printf("\nScore: %d\n", score);
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            if (board[i][j] == 0)
-                printf("[    ] "); // Empty cell
+// Function to print the grid
+void displayGrid() {
+    printf("\nScore: %d\n", total_score);
+    for (int r = 0; r < SIZE; r++) {
+        for (int c = 0; c < SIZE; c++) {
+            if (grid[r][c] == 0)
+                printf("[    ] ");
             else
-                printf("[%4d] ", board[i][j]); // Tile with value
+                printf("[%4d] ", grid[r][c]);
         }
         printf("\n");
     }
 }
 
-// Add a new random number to the board (after a move)
-void spawnNewNumber() {
-    int x, y;
+// Function to add a new tile to the grid
+void addNewTile() {
+    int r, c;
     do {
-        x = rand() % SIZE; // Random row
-        y = rand() % SIZE; // Random column
-    } while (board[x][y] != 0); // Keep trying if spot is taken
-    board[x][y] = (rand() % 2 + 1) * 2; // Add either 2 or 4
+        r = rand() % SIZE;
+        c = rand() % SIZE;
+    } while (grid[r][c] != 0);
+    grid[r][c] = (rand() % 2 + 1) * 2; // Adds either 2 or 4
 }
 
-// Move tiles up and combine if possible
+// Function to handle moving up
 void moveUp() {
-    for (int j = 0; j < SIZE; j++) { // Loop through columns
-        int merge[SIZE] = {0}; // Keep track of merges
-        for (int i = 1; i < SIZE; i++) { // Start from the second row
-            if (board[i][j] != 0) { // If the tile isn't empty
-                int k = i;
-                while (k > 0 && board[k - 1][j] == 0) { // Move up if empty
-                    board[k - 1][j] = board[k][j];
-                    board[k][j] = 0;
-                    k--;
+    for (int c = 0; c < SIZE; c++) {
+        int merged[SIZE] = {0}; // Tracks if a tile has merged
+        for (int r = 1; r < SIZE; r++) {
+            if (grid[r][c] != 0) {
+                int row = r;
+                while (row > 0 && grid[row - 1][c] == 0) {
+                    grid[row - 1][c] = grid[row][c];
+                    grid[row][c] = 0;
+                    row--;
                 }
-                if (k > 0 && board[k - 1][j] == board[k][j] && !merge[k - 1]) { // Merge if same value
-                    board[k - 1][j] *= 2;
-                    score += board[k - 1][j]; // Add to score
-                    board[k][j] = 0;
-                    merge[k - 1] = 1; // Mark as merged
+                if (row > 0 && grid[row - 1][c] == grid[row][c] && !merged[row - 1]) {
+                    grid[row - 1][c] *= 2;
+                    total_score += grid[row - 1][c];
+                    grid[row][c] = 0;
+                    merged[row - 1] = 1;
                 }
             }
         }
     }
 }
 
-// Move tiles down
+// Function to handle moving down
 void moveDown() {
-    for (int j = 0; j < SIZE; j++) {
-        int merge[SIZE] = {0};
-        for (int i = SIZE - 2; i >= 0; i--) { // Start from second last row
-            if (board[i][j] != 0) {
-                int k = i;
-                while (k < SIZE - 1 && board[k + 1][j] == 0) {
-                    board[k + 1][j] = board[k][j];
-                    board[k][j] = 0;
-                    k++;
+    for (int c = 0; c < SIZE; c++) {
+        int merged[SIZE] = {0};
+        for (int r = SIZE - 2; r >= 0; r--) {
+            if (grid[r][c] != 0) {
+                int row = r;
+                while (row < SIZE - 1 && grid[row + 1][c] == 0) {
+                    grid[row + 1][c] = grid[row][c];
+                    grid[row][c] = 0;
+                    row++;
                 }
-                if (k < SIZE - 1 && board[k + 1][j] == board[k][j] && !merge[k + 1]) {
-                    board[k + 1][j] *= 2;
-                    score += board[k + 1][j];
-                    board[k][j] = 0;
-                    merge[k + 1] = 1;
+                if (row < SIZE - 1 && grid[row + 1][c] == grid[row][c] && !merged[row + 1]) {
+                    grid[row + 1][c] *= 2;
+                    total_score += grid[row + 1][c];
+                    grid[row][c] = 0;
+                    merged[row + 1] = 1;
                 }
             }
         }
     }
 }
 
-// Move tiles left
+// Function to handle moving left
 void moveLeft() {
-    for (int i = 0; i < SIZE; i++) {
-        int merge[SIZE] = {0};
-        for (int j = 1; j < SIZE; j++) {
-            if (board[i][j] != 0) {
-                int k = j;
-                while (k > 0 && board[i][k - 1] == 0) {
-                    board[i][k - 1] = board[i][k];
-                    board[i][k] = 0;
-                    k--;
+    for (int r = 0; r < SIZE; r++) {
+        int merged[SIZE] = {0};
+        for (int c = 1; c < SIZE; c++) {
+            if (grid[r][c] != 0) {
+                int col = c;
+                while (col > 0 && grid[r][col - 1] == 0) {
+                    grid[r][col - 1] = grid[r][col];
+                    grid[r][col] = 0;
+                    col--;
                 }
-                if (k > 0 && board[i][k - 1] == board[i][k] && !merge[k - 1]) {
-                    board[i][k - 1] *= 2;
-                    score += board[i][k - 1];
-                    board[i][k] = 0;
-                    merge[k - 1] = 1;
+                if (col > 0 && grid[r][col - 1] == grid[r][col] && !merged[col - 1]) {
+                    grid[r][col - 1] *= 2;
+                    total_score += grid[r][col - 1];
+                    grid[r][col] = 0;
+                    merged[col - 1] = 1;
                 }
             }
         }
     }
 }
 
-// Move tiles right
+// Function to handle moving right
 void moveRight() {
-    for (int i = 0; i < SIZE; i++) {
-        int merge[SIZE] = {0};
-        for (int j = SIZE - 2; j >= 0; j--) {
-            if (board[i][j] != 0) {
-                int k = j;
-                while (k < SIZE - 1 && board[i][k + 1] == 0) {
-                    board[i][k + 1] = board[i][k];
-                    board[i][k] = 0;
-                    k++;
+    for (int r = 0; r < SIZE; r++) {
+        int merged[SIZE] = {0};
+        for (int c = SIZE - 2; c >= 0; c--) {
+            if (grid[r][c] != 0) {
+                int col = c;
+                while (col < SIZE - 1 && grid[r][col + 1] == 0) {
+                    grid[r][col + 1] = grid[r][col];
+                    grid[r][col] = 0;
+                    col++;
                 }
-                if (k < SIZE - 1 && board[i][k + 1] == board[i][k] && !merge[k + 1]) {
-                    board[i][k + 1] *= 2;
-                    score += board[i][k + 1];
-                    board[i][k] = 0;
-                    merge[k + 1] = 1;
+                if (col < SIZE - 1 && grid[r][col + 1] == grid[r][col] && !merged[col + 1]) {
+                    grid[r][col + 1] *= 2;
+                    total_score += grid[r][col + 1];
+                    grid[r][col] = 0;
+                    merged[col + 1] = 1;
                 }
             }
         }
     }
 }
 
-// Handle key presses for movement
-void handleKey(SDL_Keycode key) {
+// Function to process user input for game movement
+void keymovement(SDL_Keycode key) {
     switch (key) {
-        case SDLK_UP: moveUp(); break;
-        case SDLK_DOWN: moveDown(); break;
-        case SDLK_LEFT: moveLeft(); break;
-        case SDLK_RIGHT: moveRight(); break;
-        default: return;
+        case SDLK_UP:
+            moveUp();
+            break;
+        case SDLK_DOWN:
+            moveDown();
+            break;
+        case SDLK_LEFT:
+            moveLeft();
+            break;
+        case SDLK_RIGHT:
+            moveRight();
+            break;
+        default:
+            return;
     }
-    spawnNewNumber(); // Add a new number after each valid move
-    printBoard(); // Show the updated board
+    addNewTile();
+    displayGrid();
 }
 
-// Check if the player won or lost
-int is_won() {
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            if (board[i][j] == WIN_SCORE) return 1; // 2048 reached
+// Function to check if there are no more valid moves left
+int isFull() {
+    for (int r = 0; r < SIZE; r++) {
+        for (int c = 0; c < SIZE; c++) {
+            if (grid[r][c] == 0) return 0;
+            if (r > 0 && grid[r][c] == grid[r - 1][c]) return 0;
+            if (r < SIZE - 1 && grid[r][c] == grid[r + 1][c]) return 0;
+            if (c > 0 && grid[r][c] == grid[r][c - 1]) return 0;
+            if (c < SIZE - 1 && grid[r][c] == grid[r][c + 1]) return 0;
         }
     }
-    return 0;
+    return 1;
+}
+
+// Function to check if the player has won
+int checkWin() {
+    for (int r = 0; r < SIZE; r++) {
+        for (int c = 0; c < SIZE; c++) {
+            if (grid[r][c] == TARGET) {
+                return 1; // Player has won
+            }
+        }
+    }
+    return 0; // Player has not won
 }
 
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);
 
-    SDL_Window* window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
+    SDL_Window* window = SDL_CreateWindow(
+        "2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN);
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
-    initializeBoard();
-    printBoard();
+    initializeGrid();
+    displayGrid();
 
+    int isRunning = 1;
     SDL_Event event;
-    int running = 1;
 
-    while (running) {
+    while (isRunning) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) running = 0;
-            else if (event.type == SDL_KEYDOWN) handleKey(event.key.keysym.sym);
+            if (event.type == SDL_QUIT) {
+                isRunning = 0;
+            } else if (event.type == SDL_KEYDOWN) {
+                keymovement(event.key.keysym.sym);
+            }
         }
 
-        if (is_won()) {
-            printf("Congrats, you won!\n");
+        if (checkWin()) {
+            printf("You won!\n");
+            break;
+        }
+
+        if (isFull()) {
+            printf("Game Over!\n");
             break;
         }
     }
