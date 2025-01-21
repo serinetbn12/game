@@ -7,7 +7,7 @@
 
 #define SIZE 4
 #define TARGET 2048
-#define WINDOW_WIDTH 1000  // Wider but not too big
+#define WINDOW_WIDTH 1200  // Wider window to fit two grids
 #define WINDOW_HEIGHT 550  // Reasonable height
 #define GRID_SIZE 100      // Slightly larger grid cells
 #define GRID_SPACING 10    // Spacing between cells
@@ -324,6 +324,21 @@ void machineMove(int grid[SIZE][SIZE], int *score) {
     addNewTile(grid); // Add a new tile after the move
 }
 
+// Function to render game info (score, best score, and time)
+void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
+    SDL_Color color = {255, 255, 255, 255}; // White text
+    char infoText[100];
+    sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec", 
+            total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+
+    SDL_Surface *surface = TTF_RenderText_Solid(font, infoText, color); // Render text
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture
+    SDL_Rect textRect = {10, 10, surface->w, surface->h}; // Position at top-left
+    SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
+    SDL_FreeSurface(surface); // Free surface
+    SDL_DestroyTexture(texture); // Free texture
+}
+
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
     if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() == -1) {
@@ -389,14 +404,21 @@ int main(int argc, char* argv[]) {
             SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
             SDL_RenderClear(renderer);
 
+            // Render game info (score, best score, and time)
+            renderGameInfo(renderer, font);
+
+            // Center the grids horizontally
+            int playerGridX = (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+            int machineGridX = WINDOW_WIDTH / 2 + (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+
             // Render player's grid (if in Player or Player vs Machine mode)
             if (gameMode == 0 || gameMode == 2) {
-                renderGrid(renderer, font, grid, 50, 100, &total_score);
+                renderGrid(renderer, font, grid, playerGridX, 100, &total_score);
             }
 
             // Render machine's grid (if in Machine or Player vs Machine mode)
             if (gameMode == 1 || gameMode == 2) {
-                renderGrid(renderer, font, machineGrid, 550, 100, &machine_score);
+                renderGrid(renderer, font, machineGrid, machineGridX, 100, &machine_score);
             }
 
             // Update the screen
