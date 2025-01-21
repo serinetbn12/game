@@ -23,6 +23,8 @@ int isPaused = 0; // Pause state
 int isStopped = 0; // Stop state
 int gameMode = 0; // 0: Player, 1: Machine, 2: Player vs Machine
 int inMenu = 1; // 1: Show menu, 0: Show game
+char playerName[50] = ""; // Player's name
+int nameEntered = 0; // Flag to check if name has been entered
 
 // Function to initialize the grid
 void initializeGrid() {
@@ -178,11 +180,38 @@ void renderGrid(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderClear(renderer); // Clear the screen
 
     SDL_Color color = {255, 255, 255, 255}; // Set text color to white
-    char text[10];
+    char text[50];
 
+    // Display current score, best score, and elapsed time
+    sprintf(text, "Score: %d", total_score);
+    SDL_Surface *scoreSurface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+    SDL_Rect scoreRect = {10, 10, scoreSurface->w, scoreSurface->h};
+    SDL_RenderCopy(renderer, scoreTexture, NULL, &scoreRect);
+    SDL_FreeSurface(scoreSurface);
+    SDL_DestroyTexture(scoreTexture);
+
+    sprintf(text, "Best Score: %d", best_score);
+    SDL_Surface *bestScoreSurface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *bestScoreTexture = SDL_CreateTextureFromSurface(renderer, bestScoreSurface);
+    SDL_Rect bestScoreRect = {10, 40, bestScoreSurface->w, bestScoreSurface->h};
+    SDL_RenderCopy(renderer, bestScoreTexture, NULL, &bestScoreRect);
+    SDL_FreeSurface(bestScoreSurface);
+    SDL_DestroyTexture(bestScoreTexture);
+
+    Uint32 elapsedTime = (SDL_GetTicks() - startTime) / 1000;
+    sprintf(text, "Time: %d sec", elapsedTime);
+    SDL_Surface *timeSurface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *timeTexture = SDL_CreateTextureFromSurface(renderer, timeSurface);
+    SDL_Rect timeRect = {10, 70, timeSurface->w, timeSurface->h};
+    SDL_RenderCopy(renderer, timeTexture, NULL, &timeRect);
+    SDL_FreeSurface(timeSurface);
+    SDL_DestroyTexture(timeTexture);
+
+    // Render the grid
     for (int r = 0; r < SIZE; r++) {
         for (int c = 0; c < SIZE; c++) {
-            SDL_Rect cellRect = {c * 110 + 10, r * 110 + 10, 100, 100};
+            SDL_Rect cellRect = {c * 110 + 10, r * 110 + 100, 100, 100};
 
             SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
             SDL_RenderFillRect(renderer, &cellRect);
@@ -194,12 +223,12 @@ void renderGrid(SDL_Renderer *renderer, TTF_Font *font) {
 
                 int textWidth = surface->w;
                 int textHeight = surface->h;
-              SDL_Rect textRect = {
-    c * 110 + (110 - textWidth) / 2,
-    r * 110 + (110 - textHeight) / 2,
-    textWidth,
-    textHeight
-};
+                SDL_Rect textRect = {
+                    c * 110 + (110 - textWidth) / 2 + 10,
+                    r * 110 + (110 - textHeight) / 2 + 100,
+                    textWidth,
+                    textHeight
+                };
 
                 SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
                 SDL_FreeSurface(surface); // Free surface
@@ -289,6 +318,26 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderPresent(renderer); // Update the screen
 }
 
+// Function to render the name input screen
+void renderNameInput(SDL_Renderer *renderer, TTF_Font *font, const char *inputText) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
+    SDL_RenderClear(renderer); // Clear the screen
+
+    SDL_Color color = {255, 255, 255, 255}; // Set text color to white
+    char promptText[] = "Enter your name: ";
+    char fullText[100];
+    sprintf(fullText, "%s%s", promptText, inputText);
+
+    SDL_Surface *surface = TTF_RenderText_Solid(font, fullText, color); // Render text
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture
+    SDL_Rect textRect = {10, 10, surface->w, surface->h}; // Set position and size
+    SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
+    SDL_FreeSurface(surface); // Free surface
+    SDL_DestroyTexture(texture); // Free texture
+
+    SDL_RenderPresent(renderer); // Update the screen
+}
+
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
     if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() == -1) {
@@ -297,7 +346,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Create a window and renderer
-    SDL_Window *window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 600, 550, SDL_WINDOW_SHOWN);
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     TTF_Font *font = TTF_OpenFont("arial.ttf", 24); // Load font
 
@@ -311,6 +360,36 @@ int main(int argc, char* argv[]) {
 
     int isRunning = 1; // Main loop flag
     SDL_Event event;
+
+    // Name input loop
+    char inputText[50] = "";
+    int nameEntered = 0;
+    SDL_StartTextInput(); // Enable text input
+
+    while (!nameEntered) {
+        renderNameInput(renderer, font, inputText); // Render the name input screen
+
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                isRunning = 0;
+                nameEntered = 1; // Exit the game
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_RETURN) {
+                    strncpy(playerName, inputText, sizeof(playerName) - 1);
+                    nameEntered = 1; // Exit the name input loop
+                } else if (event.key.keysym.sym == SDLK_BACKSPACE && strlen(inputText) > 0) {
+                    inputText[strlen(inputText) - 1] = '\0'; // Remove last character
+                }
+            } else if (event.type == SDL_TEXTINPUT) {
+                if (strlen(inputText) < sizeof(inputText) - 1) {
+                    strcat(inputText, event.text.text); // Append the entered character
+                }
+            }
+        }
+        SDL_Delay(16); // Add a small delay to reduce CPU usage
+    }
+
+    SDL_StopTextInput(); // Disable text input
 
     while (isRunning) {
         if (inMenu) {
@@ -412,7 +491,7 @@ int main(int argc, char* argv[]) {
     }
 
     // Update and save high scores
-    updateHighScores("Player1", total_score, (SDL_GetTicks() - startTime) / 1000);
+    updateHighScores(playerName, total_score, (SDL_GetTicks() - startTime) / 1000);
     saveHighScores();
 
     // Clean up resources
@@ -424,3 +503,4 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
+
