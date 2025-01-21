@@ -221,10 +221,17 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
     SDL_RenderClear(renderer);
 
+    // Load a larger font for the title
+    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72); // Larger font size (72)
+    if (!titleFont) {
+        printf("Error loading title font: %s\n", TTF_GetError());
+        return;
+    }
+
     // Render the title
     char *title = "2048 Game Menu";
-    SDL_Color titleColor = {255, 215, 0, 255}; // Gold color for the title
-    SDL_Surface *titleSurface = TTF_RenderText_Solid(font, title, titleColor);
+    SDL_Color titleColor = {255, 105, 180, 255}; // Pink color (RGB: 255, 105, 180)
+    SDL_Surface *titleSurface = TTF_RenderText_Solid(titleFont, title, titleColor);
     SDL_Texture *titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
 
     // Center the title horizontally
@@ -232,13 +239,28 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     int titleY = 50; // Vertical position of the title
     SDL_Rect titleRect = {titleX, titleY, titleSurface->w, titleSurface->h};
     SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
-
     // Free the title surface and texture
     SDL_FreeSurface(titleSurface);
     SDL_DestroyTexture(titleTexture);
+    TTF_CloseFont(titleFont); // Close the larger font
+    // Render the subtitle "Game Menu"
+    SDL_Color subtitleColor = {255, 255, 255, 255}; // White
+    char *subtitle = "Game Menu";
+    SDL_Surface *subtitleSurface = TTF_RenderText_Solid(font, subtitle, subtitleColor);
+    SDL_Texture *subtitleTexture = SDL_CreateTextureFromSurface(renderer, subtitleSurface);
+
+    // Position the subtitle below the title
+    int subtitleX = (WINDOW_WIDTH - subtitleSurface->w) / 2;
+    int subtitleY = titleY + 100; // Adjust this value to position the subtitle
+    SDL_Rect subtitleRect = {subtitleX, subtitleY, subtitleSurface->w, subtitleSurface->h};
+    SDL_RenderCopy(renderer, subtitleTexture, NULL, &subtitleRect);
+
+    // Free the subtitle surface and texture
+    SDL_FreeSurface(subtitleSurface);
+    SDL_DestroyTexture(subtitleTexture);
 
     // Button dimensions and positions
-    int buttonWidth = 300; // Wider buttons
+    int buttonWidth = 350; // Wider buttons
     int buttonHeight = 60; // Taller buttons
     int buttonX = (WINDOW_WIDTH - buttonWidth) / 2; // Center buttons horizontally
     int buttonY = 150; // Vertical position of the first button
@@ -250,8 +272,8 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Rect buttonPvsM = {buttonX, buttonY + 2 * buttonSpacing, buttonWidth, buttonHeight};  // Player vs Machine
     SDL_Rect buttonQuit = {buttonX, buttonY + 3 * buttonSpacing, buttonWidth, buttonHeight};  // Quit
 
-    // Draw buttons with a green color
-    SDL_Color buttonColor = {50, 205, 50, 255}; // Light green (RGB: 50, 205, 50)
+    // Draw buttons with a oink color
+    SDL_Color buttonColor = {255,182,193,255};
     SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
     SDL_RenderFillRect(renderer, &buttonPlayer);
     SDL_RenderFillRect(renderer, &buttonMachine);
@@ -259,7 +281,7 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderFillRect(renderer, &buttonQuit);
 
     // Render text on buttons
-    SDL_Color textColor = {255, 255, 255, 255}; // White text
+    SDL_Color textColor = {0, 0, 0, 255}; // black text
     char *menuItems[] = {"Player Mode", "Machine Mode", "Player vs Machine", "Quit"};
     SDL_Rect buttonRects[] = {buttonPlayer, buttonMachine, buttonPvsM, buttonQuit};
 
@@ -410,7 +432,7 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScor
 
     // Colors
     SDL_Color backgroundColor = {30, 30, 30, 255}; // Dark gray background
-    SDL_Color headerColor = {50, 205, 50, 255}; // Green for headers
+    SDL_Color headerColor = {255,182,193,255}; // oink for headers
     SDL_Color textColor = {255, 255, 255, 255}; // White for text
     SDL_Color borderColor = {100, 100, 100, 255}; // Gray for borders
 
