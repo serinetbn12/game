@@ -343,7 +343,8 @@ void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
 void saveScores(HighScore highScores[], int count) {
     FILE *file = fopen("highscores.dat", "wb");
     if (file) {
-        fwrite(highScores, sizeof(HighScore), count, file);
+        // Save only the top 5 scores
+        fwrite(highScores, sizeof(HighScore), (count > 5) ? 5 : count, file);
         fclose(file);
     }
 }
@@ -352,16 +353,15 @@ void saveScores(HighScore highScores[], int count) {
 void loadScores(HighScore highScores[], int *count) {
     FILE *file = fopen("highscores.dat", "rb");
     if (file) {
+        // Load up to 5 scores
         *count = fread(highScores, sizeof(HighScore), 5, file);
         fclose(file);
 
-        // Update best_score to the highest score in the loaded high scores
-        best_score = 0;
-        for (int i = 0; i < *count; i++) {
-            if (highScores[i].score > best_score) {
-                best_score = highScores[i].score;
-            }
-        }
+        // Sort the loaded scores
+        sortScores(highScores, *count);
+
+        // Update best_score to the highest score in the array
+        best_score = highScores[0].score;
     } else {
         *count = 0; // No scores loaded
     }
@@ -378,6 +378,26 @@ void sortScores(HighScore highScores[], int count) {
             }
         }
     }
+}
+
+// Function to add a new high score
+void addHighScore(HighScore highScores[], int *count, HighScore newScore) {
+    // If there are fewer than 5 scores, add the new score
+    if (*count < 5) {
+        highScores[*count] = newScore;
+        (*count)++;
+    } else {
+        // If there are already 5 scores, replace the lowest score if the new score is higher
+        if (newScore.score > highScores[4].score) {
+            highScores[4] = newScore;
+        }
+    }
+
+    // Sort the scores in descending order
+    sortScores(highScores, *count);
+
+    // Update best_score to the highest score in the array
+    best_score = highScores[0].score;
 }
 
 // Function to render high scores
@@ -500,6 +520,7 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScor
         SDL_Delay(16); // Reduce CPU usage
     }
 }
+
 // Function to render the "Game Over" screen
 void renderGameOver(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
@@ -669,15 +690,8 @@ int main(int argc, char* argv[]) {
                     newScore.score = total_score;
                     newScore.duration = (SDL_GetTicks() - startTime) / 1000;
 
-                    highScores[highScoreCount % 5] = newScore;
-                    highScoreCount++;
-                    sortScores(highScores, highScoreCount);
+                    addHighScore(highScores, &highScoreCount, newScore);
                     saveScores(highScores, highScoreCount);
-
-                    // Update best_score if the new score is higher
-                    if (newScore.score > best_score) {
-                        best_score = newScore.score;
-                    }
                 }
                 isRunning = 0; // Exit the game
             } else if (event.type == SDL_KEYDOWN) {
