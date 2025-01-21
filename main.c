@@ -24,7 +24,7 @@ int grid[SIZE][SIZE]; // Player's game grid
 int machineGrid[SIZE][SIZE]; // Machine's game grid
 int total_score = 0; // Player's current score
 int machine_score = 0; // Machine's current score
-int best_score = 0; // Best score
+int best_score = 0; // Best score (highest of the 5 stored scores)
 Uint32 startTime = 0; // Game start time
 
 int gameMode = 0; // 0: Player, 1: Machine, 2: Player vs Machine
@@ -338,6 +338,8 @@ void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_FreeSurface(surface); // Free surface
     SDL_DestroyTexture(texture); // Free texture
 }
+
+// Function to save high scores
 void saveScores(HighScore highScores[], int count) {
     FILE *file = fopen("highscores.dat", "wb");
     if (file) {
@@ -345,15 +347,27 @@ void saveScores(HighScore highScores[], int count) {
         fclose(file);
     }
 }
+
+// Function to load high scores
 void loadScores(HighScore highScores[], int *count) {
     FILE *file = fopen("highscores.dat", "rb");
     if (file) {
         *count = fread(highScores, sizeof(HighScore), 5, file);
         fclose(file);
+
+        // Update best_score to the highest score in the loaded high scores
+        best_score = 0;
+        for (int i = 0; i < *count; i++) {
+            if (highScores[i].score > best_score) {
+                best_score = highScores[i].score;
+            }
+        }
     } else {
         *count = 0; // No scores loaded
     }
 }
+
+// Function to sort high scores
 void sortScores(HighScore highScores[], int count) {
     for (int i = 0; i < count - 1; i++) {
         for (int j = i + 1; j < count; j++) {
@@ -366,6 +380,7 @@ void sortScores(HighScore highScores[], int count) {
     }
 }
 
+// Function to render high scores
 void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScores[], int count) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
     SDL_RenderClear(renderer);
@@ -386,7 +401,78 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScor
     }
 
     SDL_RenderPresent(renderer);
+
+    // Wait for a key press
+    int waiting = 1;
+    SDL_Event event;
+    while (waiting) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_KEYDOWN || event.type == SDL_QUIT) {
+                waiting = 0; // Exit the loop
+            }
+        }
+        SDL_Delay(16); // Reduce CPU usage
+    }
 }
+
+// Function to render the "Game Over" screen
+void renderGameOver(SDL_Renderer *renderer, TTF_Font *font) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    SDL_RenderClear(renderer);
+
+    SDL_Color color = {255, 0, 0, 255}; // Red text
+    char *text = "Game Over! Press any key to continue...";
+    SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect = {(WINDOW_WIDTH - surface->w) / 2, (WINDOW_HEIGHT - surface->h) / 2, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &textRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    // Wait for a key press
+    int waiting = 1;
+    SDL_Event event;
+    while (waiting) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_KEYDOWN || event.type == SDL_QUIT) {
+                waiting = 0; // Exit the loop
+            }
+        }
+        SDL_Delay(16); // Reduce CPU usage
+    }
+}
+
+// Function to render the "You Win" screen
+void renderWin(SDL_Renderer *renderer, TTF_Font *font) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    SDL_RenderClear(renderer);
+
+    SDL_Color color = {0, 255, 0, 255}; // Green text
+    char *text = "You Win! Press any key to continue...";
+    SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect = {(WINDOW_WIDTH - surface->w) / 2, (WINDOW_HEIGHT - surface->h) / 2, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &textRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    // Wait for a key press
+    int waiting = 1;
+    SDL_Event event;
+    while (waiting) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_KEYDOWN || event.type == SDL_QUIT) {
+                waiting = 0; // Exit the loop
+            }
+        }
+        SDL_Delay(16); // Reduce CPU usage
+    }
+}
+
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
     if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() == -1) {
@@ -475,6 +561,18 @@ int main(int argc, char* argv[]) {
 
             // Update the screen
             SDL_RenderPresent(renderer);
+
+            // Check for win condition
+            if (checkWin(grid)) {
+                renderWin(renderer, font);
+                inMenu = 1; // Return to menu
+            }
+
+            // Check for game over condition
+            if (isFull(grid)) {
+                renderGameOver(renderer, font);
+                inMenu = 1; // Return to menu
+            }
         }
 
         while (SDL_PollEvent(&event)) {
@@ -490,6 +588,11 @@ int main(int argc, char* argv[]) {
                     highScoreCount++;
                     sortScores(highScores, highScoreCount);
                     saveScores(highScores, highScoreCount);
+
+                    // Update best_score if the new score is higher
+                    if (newScore.score > best_score) {
+                        best_score = newScore.score;
+                    }
                 }
                 isRunning = 0; // Exit the game
             } else if (event.type == SDL_KEYDOWN) {
@@ -562,7 +665,6 @@ int main(int argc, char* argv[]) {
 
     // Render high scores before quitting
     renderHighScores(renderer, font, highScores, highScoreCount);
-    SDL_Delay(3000); // Display high scores for 3 seconds
 
     // Clean up resources
     TTF_CloseFont(font);
