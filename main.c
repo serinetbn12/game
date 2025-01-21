@@ -328,7 +328,7 @@ void machineMove(int grid[SIZE][SIZE], int *score) {
 void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color color = {255, 255, 255, 255}; // White text
     char infoText[100];
-    sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec", 
+    sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec",
             total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
 
     SDL_Surface *surface = TTF_RenderText_Solid(font, infoText, color); // Render text
@@ -338,13 +338,65 @@ void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_FreeSurface(surface); // Free surface
     SDL_DestroyTexture(texture); // Free texture
 }
+void saveScores(HighScore highScores[], int count) {
+    FILE *file = fopen("highscores.dat", "wb");
+    if (file) {
+        fwrite(highScores, sizeof(HighScore), count, file);
+        fclose(file);
+    }
+}
+void loadScores(HighScore highScores[], int *count) {
+    FILE *file = fopen("highscores.dat", "rb");
+    if (file) {
+        *count = fread(highScores, sizeof(HighScore), 5, file);
+        fclose(file);
+    } else {
+        *count = 0; // No scores loaded
+    }
+}
+void sortScores(HighScore highScores[], int count) {
+    for (int i = 0; i < count - 1; i++) {
+        for (int j = i + 1; j < count; j++) {
+            if (highScores[i].score < highScores[j].score) {
+                HighScore temp = highScores[i];
+                highScores[i] = highScores[j];
+                highScores[j] = temp;
+            }
+        }
+    }
+}
 
+void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScores[], int count) {
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    SDL_RenderClear(renderer);
+
+    SDL_Color color = {255, 255, 255, 255}; // White text
+    char text[100];
+    int yOffset = 50;
+
+    for (int i = 0; i < count && i < 5; i++) {
+        sprintf(text, "%d. %s - Score: %d - Time: %d sec", i + 1, highScores[i].playerName, highScores[i].score, highScores[i].duration);
+        SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
+        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+        SDL_Rect textRect = {50, yOffset, surface->w, surface->h};
+        SDL_RenderCopy(renderer, texture, NULL, &textRect);
+        SDL_FreeSurface(surface);
+        SDL_DestroyTexture(texture);
+        yOffset += 50;
+    }
+
+    SDL_RenderPresent(renderer);
+}
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
     if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() == -1) {
         printf("SDL Error: %s\n", SDL_GetError());
         return -1;
     }
+
+    // Load high scores
+    int highScoreCount = 0;
+    loadScores(highScores, &highScoreCount);
 
     // Create a window and renderer
     SDL_Window *window = SDL_CreateWindow("2048 Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH, WINDOW_HEIGHT, SDL_WINDOW_SHOWN);
@@ -427,6 +479,18 @@ int main(int argc, char* argv[]) {
 
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
+                // Save the current score before quitting
+                if (total_score > 0) {
+                    HighScore newScore;
+                    strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                    newScore.score = total_score;
+                    newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+
+                    highScores[highScoreCount % 5] = newScore;
+                    highScoreCount++;
+                    sortScores(highScores, highScoreCount);
+                    saveScores(highScores, highScoreCount);
+                }
                 isRunning = 0; // Exit the game
             } else if (event.type == SDL_KEYDOWN) {
                 if (inMenu) {
@@ -495,6 +559,10 @@ int main(int argc, char* argv[]) {
 
         SDL_Delay(16); // Add a small delay to reduce CPU usage
     }
+
+    // Render high scores before quitting
+    renderHighScores(renderer, font, highScores, highScoreCount);
+    SDL_Delay(3000); // Display high scores for 3 seconds
 
     // Clean up resources
     TTF_CloseFont(font);
