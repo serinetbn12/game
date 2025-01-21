@@ -263,6 +263,23 @@ void saveHighScores() {
     }
 }
 
+// Function to update high scores
+void updateHighScores(const char *playerName, int score, int duration) {
+    HighScore newScore = {0};
+    strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+    newScore.score = score;
+    newScore.duration = duration;
+
+    for (int i = 0; i < 5; ++i) {
+        if (score > highScores[i].score) {
+            for (int j = 4; j > i; --j) {
+                highScores[j] = highScores[j - 1]; // Shift scores down
+            }
+            highScores[i] = newScore; // Insert new score
+            break;
+        }
+    }
+}
 
 // Function to render high scores
 void renderHighScores(SDL_Renderer *renderer, TTF_Font *font) {
@@ -284,22 +301,72 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font) {
 
 // Function to render the main menu
 void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
-    SDL_RenderClear(renderer); // Clear the screen
+    // Clear the screen with a black background
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
+    SDL_RenderClear(renderer);
 
-    SDL_Color color = {255, 255, 255, 255}; // Set text color to white
-    char *menuItems[] = {"1. Player Mode", "2. Machine Mode", "3. Player vs Machine Mode", "Press Q to Quit"};
+    // Render the title
+    char *title = "2048 Game Menu";
+    SDL_Color titleColor = {255, 215, 0, 255}; // Gold color for the title
+    SDL_Surface *titleSurface = TTF_RenderText_Solid(font, title, titleColor);
+    SDL_Texture *titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+
+    // Center the title horizontally
+    int titleX = (600 - titleSurface->w) / 2; // 600 = window width
+    int titleY = 80; // Vertical position of the title
+    SDL_Rect titleRect = {titleX, titleY, titleSurface->w, titleSurface->h};
+    SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+
+    // Free the title surface and texture
+    SDL_FreeSurface(titleSurface);
+    SDL_DestroyTexture(titleTexture);
+
+    // Button dimensions and positions
+    int buttonWidth = 200; // Button width
+    int buttonHeight = 50; // Button height
+    int buttonX = (600 - buttonWidth) / 2; // Center buttons horizontally
+    int buttonY = 150; // Vertical position of the first button
+    int buttonSpacing = 70; // Space between buttons
+
+    // Define button rectangles
+    SDL_Rect buttonPlayer = {buttonX, buttonY, buttonWidth, buttonHeight};          // Player Mode
+    SDL_Rect buttonMachine = {buttonX, buttonY + buttonSpacing, buttonWidth, buttonHeight};   // Machine Mode
+    SDL_Rect buttonPvsM = {buttonX, buttonY + 2 * buttonSpacing, buttonWidth, buttonHeight};  // Player vs Machine
+    SDL_Rect buttonQuit = {buttonX, buttonY + 3 * buttonSpacing, buttonWidth, buttonHeight};  // Quit
+
+    // Draw buttons with a green color
+    SDL_Color buttonColor = {50, 205, 50, 255}; // Light green (RGB: 50, 205, 50)
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &buttonPlayer);
+    SDL_RenderFillRect(renderer, &buttonMachine);
+    SDL_RenderFillRect(renderer, &buttonPvsM);
+    SDL_RenderFillRect(renderer, &buttonQuit);
+
+    // Render text on buttons
+    SDL_Color textColor = {255, 255, 255, 255}; // White text
+    char *menuItems[] = {"Player Mode", "Machine Mode", "Player vs Machine", "Quit"};
+    SDL_Rect buttonRects[] = {buttonPlayer, buttonMachine, buttonPvsM, buttonQuit};
+
     for (int i = 0; i < 4; i++) {
-        SDL_Surface *surface = TTF_RenderText_Solid(font, menuItems[i], color); // Render text
-        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture
-        SDL_Rect textRect = {10, 50 + i * 30, surface->w, surface->h}; // Set position and size
-        SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
+        SDL_Surface *surface = TTF_RenderText_Solid(font, menuItems[i], textColor); // Create text surface
+        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture from surface
+
+        // Center text within the button
+        SDL_Rect textRect = {
+            buttonRects[i].x + (buttonRects[i].w - surface->w) / 2,
+            buttonRects[i].y + (buttonRects[i].h - surface->h) / 2,
+            surface->w,
+            surface->h
+        };
+
+        SDL_RenderCopy(renderer, texture, NULL, &textRect); // Render text
         SDL_FreeSurface(surface); // Free surface
         SDL_DestroyTexture(texture); // Free texture
     }
-    SDL_RenderPresent(renderer); // Update the screen
-}
 
+    // Update the screen
+    SDL_RenderPresent(renderer);
+}
 // Function to render the name input screen
 void renderNameInput(SDL_Renderer *renderer, TTF_Font *font, const char *inputText) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
@@ -412,7 +479,8 @@ int main(int argc, char* argv[]) {
                             break;
                     }
                 } else {
-   switch (event.key.keysym.sym){
+                    // Handle game input
+                    switch (event.key.keysym.sym) {
                         case SDLK_UP:
                             moveUp();
                             addNewTile();
@@ -436,7 +504,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        if (!inMenu ) {
+        if (!inMenu) {
             if (checkWin()) {
                 printf("You won!\n");
                 isRunning = 0; // Exit the game
@@ -450,7 +518,9 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16); // Add a small delay to reduce CPU usage
     }
 
-
+    // Update and save high scores
+    updateHighScores(playerName, total_score, (SDL_GetTicks() - startTime) / 1000);
+    saveHighScores();
 
     // Clean up resources
     TTF_CloseFont(font);
