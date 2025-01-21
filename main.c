@@ -7,7 +7,7 @@
 
 #define SIZE 4
 #define TARGET 2048
-#define WINDOW_WIDTH 1200  // Wider window to fit two grids
+#define WINDOW_WIDTH 1000  // Wider window to fit two grids
 #define WINDOW_HEIGHT 550  // Reasonable height
 #define GRID_SIZE 100      // Slightly larger grid cells
 #define GRID_SPACING 10    // Spacing between cells
