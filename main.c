@@ -19,8 +19,7 @@ int grid[SIZE][SIZE]; // Game grid
 int total_score = 0; // Current score
 int best_score = 0; // Best score
 Uint32 startTime = 0; // Game start time
-int isPaused = 0; // Pause state
-int isStopped = 0; // Stop state
+
 int gameMode = 0; // 0: Player, 1: Machine, 2: Player vs Machine
 int inMenu = 1; // 1: Show menu, 0: Show game
 char playerName[50] = ""; // Player's name
@@ -264,23 +263,6 @@ void saveHighScores() {
     }
 }
 
-// Function to update high scores
-void updateHighScores(const char *playerName, int score, int duration) {
-    HighScore newScore = {0};
-    strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
-    newScore.score = score;
-    newScore.duration = duration;
-
-    for (int i = 0; i < 5; ++i) {
-        if (score > highScores[i].score) {
-            for (int j = 4; j > i; --j) {
-                highScores[j] = highScores[j - 1]; // Shift scores down
-            }
-            highScores[i] = newScore; // Insert new score
-            break;
-        }
-    }
-}
 
 // Function to render high scores
 void renderHighScores(SDL_Renderer *renderer, TTF_Font *font) {
@@ -409,24 +391,18 @@ int main(int argc, char* argv[]) {
                             gameMode = 0; // Player mode
                             initializeGrid(); // Initialize the grid
                             startTime = SDL_GetTicks(); // Start the timer
-                            isPaused = 0; // Unpause
-                            isStopped = 0; // Unstop
                             inMenu = 0; // Exit menu
                             break;
                         case SDLK_2:
                             gameMode = 1; // Machine mode
                             initializeGrid(); // Initialize the grid
                             startTime = SDL_GetTicks(); // Start the timer
-                            isPaused = 0; // Unpause
-                            isStopped = 0; // Unstop
                             inMenu = 0; // Exit menu
                             break;
                         case SDLK_3:
                             gameMode = 2; // Player vs Machine mode
                             initializeGrid(); // Initialize the grid
                             startTime = SDL_GetTicks(); // Start the timer
-                            isPaused = 0; // Unpause
-                            isStopped = 0; // Unstop
                             inMenu = 0; // Exit menu
                             break;
                         case SDLK_q:
@@ -436,23 +412,7 @@ int main(int argc, char* argv[]) {
                             break;
                     }
                 } else {
-                    // Handle game input
-                    switch (event.key.keysym.sym) {
-                        case SDLK_p:
-                            isPaused = 1; // Pause the game
-                            inMenu = 1; // Return to menu
-                            break;
-                        case SDLK_s:
-                            isStopped = 1; // Stop the game
-                            inMenu = 1; // Return to menu
-                            break;
-                        case SDLK_r:
-                            if (isPaused || isStopped) {
-                                isPaused = 0; // Resume the game
-                                isStopped = 0; // Resume the game
-                                inMenu = 0; // Exit menu
-                            }
-                            break;
+   switch (event.key.keysym.sym){
                         case SDLK_UP:
                             moveUp();
                             addNewTile();
@@ -476,7 +436,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        if (!inMenu && !isPaused && !isStopped) {
+        if (!inMenu ) {
             if (checkWin()) {
                 printf("You won!\n");
                 isRunning = 0; // Exit the game
@@ -490,9 +450,7 @@ int main(int argc, char* argv[]) {
         SDL_Delay(16); // Add a small delay to reduce CPU usage
     }
 
-    // Update and save high scores
-    updateHighScores(playerName, total_score, (SDL_GetTicks() - startTime) / 1000);
-    saveHighScores();
+
 
     // Clean up resources
     TTF_CloseFont(font);
@@ -503,4 +461,3 @@ int main(int argc, char* argv[]) {
 
     return 0;
 }
-
