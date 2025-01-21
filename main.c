@@ -382,27 +382,113 @@ void sortScores(HighScore highScores[], int count) {
 
 // Function to render high scores
 void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScores[], int count) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    // Constants for table layout
+    const int COL_WIDTH = 200; // Width of each column
+    const int ROW_HEIGHT = 50; // Height of each row
+    const int PADDING = 10; // Padding inside cells
+    const int BORDER_WIDTH = 2; // Width of table borders
+
+    // Colors
+    SDL_Color backgroundColor = {30, 30, 30, 255}; // Dark gray background
+    SDL_Color headerColor = {50, 205, 50, 255}; // Green for headers
+    SDL_Color textColor = {255, 255, 255, 255}; // White for text
+    SDL_Color borderColor = {100, 100, 100, 255}; // Gray for borders
+
+    // Clear the screen with a black background
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_Color color = {255, 255, 255, 255}; // White text
-    char text[100];
-    int yOffset = 50;
+    // Calculate table dimensions
+    int tableWidth = 4 * COL_WIDTH; // Total width of the table
+    int tableHeight = (count + 1) * ROW_HEIGHT; // Total height of the table
+    int startX = (WINDOW_WIDTH - tableWidth) / 2; // Centered horizontally
+    int startY = (WINDOW_HEIGHT - tableHeight) / 2; // Centered vertically
 
-    for (int i = 0; i < count && i < 5; i++) {
-        sprintf(text, "%d. %s - Score: %d - Time: %d sec", i + 1, highScores[i].playerName, highScores[i].score, highScores[i].duration);
-        SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
-        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-        SDL_Rect textRect = {50, yOffset, surface->w, surface->h};
-        SDL_RenderCopy(renderer, texture, NULL, &textRect);
-        SDL_FreeSurface(surface);
-        SDL_DestroyTexture(texture);
-        yOffset += 50;
+    // Draw the table background
+    SDL_Rect tableRect = {startX, startY, tableWidth, tableHeight};
+    SDL_SetRenderDrawColor(renderer, backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a);
+    SDL_RenderFillRect(renderer, &tableRect);
+
+    // Draw table borders
+    SDL_SetRenderDrawColor(renderer, borderColor.r, borderColor.g, borderColor.b, borderColor.a);
+    for (int i = 0; i <= 4; i++) {
+        // Vertical borders
+        SDL_RenderDrawLine(renderer, startX + i * COL_WIDTH, startY, startX + i * COL_WIDTH, startY + tableHeight);
+    }
+    for (int i = 0; i <= count + 1; i++) {
+        // Horizontal borders
+        SDL_RenderDrawLine(renderer, startX, startY + i * ROW_HEIGHT, startX + tableWidth, startY + i * ROW_HEIGHT);
     }
 
+    // Draw table headers
+    char *headers[] = {"Rank", "Name", "Score", "Time (sec)"};
+    for (int i = 0; i < 4; i++) {
+        SDL_Surface *surface = TTF_RenderText_Solid(font, headers[i], headerColor);
+        SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+
+        // Center text in the cell
+        int textX = startX + i * COL_WIDTH + (COL_WIDTH - surface->w) / 2;
+        int textY = startY + PADDING;
+
+        SDL_Rect rect = {textX, textY, surface->w, surface->h};
+        SDL_RenderCopy(renderer, texture, NULL, &rect);
+
+        SDL_FreeSurface(surface);
+        SDL_DestroyTexture(texture);
+    }
+
+    // Draw high scores data
+    for (int i = 0; i < count && i < 5; i++) {
+        char rankText[10], scoreText[20], timeText[20];
+        sprintf(rankText, "%d", i + 1); // Rank
+        sprintf(scoreText, "%d", highScores[i].score); // Score
+        sprintf(timeText, "%d", highScores[i].duration); // Time
+
+        // Draw rank
+        SDL_Surface *rankSurface = TTF_RenderText_Solid(font, rankText, textColor);
+        SDL_Texture *rankTexture = SDL_CreateTextureFromSurface(renderer, rankSurface);
+        int rankX = startX + (COL_WIDTH - rankSurface->w) / 2;
+        int rankY = startY + (i + 1) * ROW_HEIGHT + PADDING;
+        SDL_Rect rankRect = {rankX, rankY, rankSurface->w, rankSurface->h};
+        SDL_RenderCopy(renderer, rankTexture, NULL, &rankRect);
+        SDL_FreeSurface(rankSurface);
+        SDL_DestroyTexture(rankTexture);
+
+        // Draw name
+        SDL_Surface *nameSurface = TTF_RenderText_Solid(font, highScores[i].playerName, textColor);
+        SDL_Texture *nameTexture = SDL_CreateTextureFromSurface(renderer, nameSurface);
+        int nameX = startX + COL_WIDTH + (COL_WIDTH - nameSurface->w) / 2;
+        int nameY = startY + (i + 1) * ROW_HEIGHT + PADDING;
+        SDL_Rect nameRect = {nameX, nameY, nameSurface->w, nameSurface->h};
+        SDL_RenderCopy(renderer, nameTexture, NULL, &nameRect);
+        SDL_FreeSurface(nameSurface);
+        SDL_DestroyTexture(nameTexture);
+
+        // Draw score
+        SDL_Surface *scoreSurface = TTF_RenderText_Solid(font, scoreText, textColor);
+        SDL_Texture *scoreTexture = SDL_CreateTextureFromSurface(renderer, scoreSurface);
+        int scoreX = startX + 2 * COL_WIDTH + (COL_WIDTH - scoreSurface->w) / 2;
+        int scoreY = startY + (i + 1) * ROW_HEIGHT + PADDING;
+        SDL_Rect scoreRect = {scoreX, scoreY, scoreSurface->w, scoreSurface->h};
+        SDL_RenderCopy(renderer, scoreTexture, NULL, &scoreRect);
+        SDL_FreeSurface(scoreSurface);
+        SDL_DestroyTexture(scoreTexture);
+
+        // Draw time
+        SDL_Surface *timeSurface = TTF_RenderText_Solid(font, timeText, textColor);
+        SDL_Texture *timeTexture = SDL_CreateTextureFromSurface(renderer, timeSurface);
+        int timeX = startX + 3 * COL_WIDTH + (COL_WIDTH - timeSurface->w) / 2;
+        int timeY = startY + (i + 1) * ROW_HEIGHT + PADDING;
+        SDL_Rect timeRect = {timeX, timeY, timeSurface->w, timeSurface->h};
+        SDL_RenderCopy(renderer, timeTexture, NULL, &timeRect);
+        SDL_FreeSurface(timeSurface);
+        SDL_DestroyTexture(timeTexture);
+    }
+
+    // Update the screen
     SDL_RenderPresent(renderer);
 
-    // Wait for a key press
+    // Wait for user input to exit
     int waiting = 1;
     SDL_Event event;
     while (waiting) {
@@ -414,7 +500,6 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScor
         SDL_Delay(16); // Reduce CPU usage
     }
 }
-
 // Function to render the "Game Over" screen
 void renderGameOver(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
