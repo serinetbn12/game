@@ -34,7 +34,7 @@ int gameMode = 0; // 0: Player, 1: Machine, 2: Player vs Machine
 int inMenu = 1; // 1: Show menu, 0: Show game
 char playerName[50] = ""; // Player's name
 int nameEntered = 0; // Flag to check if name has been entered
-
+char machineDirection[10] = ""; // Global variable to store the machine's last direction
 // Define menu button rectangles
 SDL_Rect buttonPlayer = { (WINDOW_WIDTH - 350) / 2, 150, 350, 60 }; // Player Mode
 SDL_Rect buttonMachine = { (WINDOW_WIDTH - 350) / 2, 250, 350, 60 }; // Machine Mode
@@ -544,7 +544,8 @@ void renderDirectionalButtons(SDL_Renderer *renderer, TTF_Font *font) {
 }
 
 // Function to handle machine moves
-void machineMove(int grid[SIZE][SIZE], int *score) {
+// Function to handle machine moves
+int machineMove(int grid[SIZE][SIZE], int *score) {
     int move;
     int validMove = 0;
     int attempts = 0;
@@ -587,19 +588,21 @@ void machineMove(int grid[SIZE][SIZE], int *score) {
     } else {
         printf("No valid moves found. Game Over!\n");
     }
+
+    return move; // Return the direction the machine chose
 }
 
-// Function to render game info (score, best score, and time)
+// Function to render game info (score, best score, time, and machine direction)
 void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color color = {255, 255, 255, 255}; // White text
     char infoText[100];
 
     if (gameMode == 1) { // Machine Mode
-        sprintf(infoText, "Machine Score: %d | Best: %d | Time: %d sec",
-                machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+        sprintf(infoText, "Machine Score: %d | Best: %d | Time: %d sec | Dir: %s",
+                machine_score, best_score, (SDL_GetTicks() - startTime) / 1000, machineDirection);
     } else if (gameMode == 2) { // Player vs Machine Mode
-        sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec",
-                total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+        sprintf(infoText, "Player: %d|Machine: %d|Best: %d|Time: %d sec|Dir: %s",
+                total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000, machineDirection);
     } else { // Player Mode
         sprintf(infoText, "Score: %d | Best: %d | Time: %d sec",
                 total_score, best_score, (SDL_GetTicks() - startTime) / 1000);
@@ -622,7 +625,6 @@ void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_DestroyTexture(texture);
     TTF_CloseFont(smallFont);
 }
-
 // Function to save high scores
 void saveScores(HighScore highScores[], int count) {
     FILE *file = fopen("highscores.dat", "wb");
@@ -959,7 +961,11 @@ void resetGameState() {
 
     // Reset the timer
     startTime = SDL_GetTicks();
+
+    // Reset the machine's direction
+    strcpy(machineDirection, "NONE");
 }
+// Main function
 // Main function
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
@@ -1022,205 +1028,202 @@ int main(int argc, char* argv[]) {
 
     SDL_StopTextInput(); // Disable text input
 
-   // Main game loop
-// Main game loop
-while (isRunning) {
-    // Event handling
-    while (SDL_PollEvent(&event)) {
-        if (event.type == SDL_QUIT) {
-            // Save the current score before quitting
-            if (total_score > 0) {
-                HighScore newScore;
-                strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
-                newScore.score = total_score; // Save only the player's score
-                newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+    // Main game loop
+    while (isRunning) {
+        // Event handling
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                // Save the current score before quitting
+                if (total_score > 0) {
+                    HighScore newScore;
+                    strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                    newScore.score = total_score; // Save only the player's score
+                    newScore.duration = (SDL_GetTicks() - startTime) / 1000;
 
-                addHighScore(highScores, &highScoreCount, newScore);
-                saveScores(highScores, highScoreCount);
-            }
-            isRunning = 0; // Exit the game
-        } else if (event.type == SDL_MOUSEBUTTONDOWN) {
-            int mouseX = event.button.x;
-            int mouseY = event.button.y;
-
-            if (inMenu) {
-                // Check if a menu button is clicked
-                if (mouseX >= buttonPlayer.x && mouseX <= buttonPlayer.x + buttonPlayer.w &&
-                    mouseY >= buttonPlayer.y && mouseY <= buttonPlayer.y + buttonPlayer.h) {
-                    gameMode = 0; // Player Mode
-                    resetGameState(); // Reset the game state
-                    startTime = SDL_GetTicks();
-                    inMenu = 0; // Exit the menu
-                } else if (mouseX >= buttonMachine.x && mouseX <= buttonMachine.x + buttonMachine.w &&
-                           mouseY >= buttonMachine.y && mouseY <= buttonMachine.y + buttonMachine.h) {
-                    gameMode = 1; // Machine Mode
-                    resetGameState(); // Reset the game state
-                    startTime = SDL_GetTicks();
-                    inMenu = 0; // Exit the menu
-                } else if (mouseX >= buttonPvsM.x && mouseX <= buttonPvsM.x + buttonPvsM.w &&
-                           mouseY >= buttonPvsM.y && mouseY <= buttonPvsM.y + buttonPvsM.h) {
-                    gameMode = 2; // Player vs Machine Mode
-                    resetGameState(); // Reset the game state
-                    startTime = SDL_GetTicks();
-                    inMenu = 0; // Exit the menu
-                } else if (mouseX >= buttonQuit.x && mouseX <= buttonQuit.x + buttonQuit.w &&
-                           mouseY >= buttonQuit.y && mouseY <= buttonQuit.y + buttonQuit.h) {
-                    isRunning = 0; // Quit the game
+                    addHighScore(highScores, &highScoreCount, newScore);
+                    saveScores(highScores, highScoreCount);
                 }
-            } else {
-                // Handle pause button click
-                int buttonRadius = 25;
-                int buttonX = WINDOW_WIDTH - 50;
-                int buttonY = 50;
-                int dx = mouseX - buttonX;
-                int dy = mouseY - buttonY;
-                if (dx * dx + dy * dy <= buttonRadius * buttonRadius) {
-                    isPaused = !isPaused; // Toggle pause state
+                isRunning = 0; // Exit the game
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX = event.button.x;
+                int mouseY = event.button.y;
+
+                if (inMenu) {
+                    // Check if a menu button is clicked
+                    if (mouseX >= buttonPlayer.x && mouseX <= buttonPlayer.x + buttonPlayer.w &&
+                        mouseY >= buttonPlayer.y && mouseY <= buttonPlayer.y + buttonPlayer.h) {
+                        gameMode = 0; // Player Mode
+                        resetGameState(); // Reset the game state
+                        startTime = SDL_GetTicks();
+                        inMenu = 0; // Exit the menu
+                    } else if (mouseX >= buttonMachine.x && mouseX <= buttonMachine.x + buttonMachine.w &&
+                               mouseY >= buttonMachine.y && mouseY <= buttonMachine.y + buttonMachine.h) {
+                        gameMode = 1; // Machine Mode
+                        resetGameState(); // Reset the game state
+                        startTime = SDL_GetTicks();
+                        inMenu = 0; // Exit the menu
+                    } else if (mouseX >= buttonPvsM.x && mouseX <= buttonPvsM.x + buttonPvsM.w &&
+                               mouseY >= buttonPvsM.y && mouseY <= buttonPvsM.y + buttonPvsM.h) {
+                        gameMode = 2; // Player vs Machine Mode
+                        resetGameState(); // Reset the game state
+                        startTime = SDL_GetTicks();
+                        inMenu = 0; // Exit the menu
+                    } else if (mouseX >= buttonQuit.x && mouseX <= buttonQuit.x + buttonQuit.w &&
+                               mouseY >= buttonQuit.y && mouseY <= buttonQuit.y + buttonQuit.h) {
+                        isRunning = 0; // Quit the game
+                    }
+                } else {
+                    // Handle pause button click
+                    int buttonRadius = 25;
+                    int buttonX = WINDOW_WIDTH - 50;
+                    int buttonY = 50;
+                    int dx = mouseX - buttonX;
+                    int dy = mouseY - buttonY;
+                    if (dx * dx + dy * dy <= buttonRadius * buttonRadius) {
+                        isPaused = !isPaused; // Toggle pause state
+                    }
+
+                    // Handle pause menu interactions
+                    if (isPaused) {
+                        int action = handlePauseMenu(&event);
+                        if (action == 1) {
+                            isPaused = 0; // Resume
+                        } else if (action == 2) {
+                            // Save the current score before returning to the main menu
+                            if (total_score > 0) {
+                                HighScore newScore;
+                                strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                                newScore.score = total_score; // Save only the player's score
+                                newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+
+                                addHighScore(highScores, &highScoreCount, newScore);
+                                saveScores(highScores, highScoreCount);
+                            }
+                            isPaused = 0;
+                            inMenu = 1; // Return to main menu
+                        } else if (action == 3) {
+                            // Save the current score before quitting
+                            if (total_score > 0) {
+                                HighScore newScore;
+                                strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                                newScore.score = total_score; // Save only the player's score
+                                newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+
+                                addHighScore(highScores, &highScoreCount, newScore);
+                                saveScores(highScores, highScoreCount);
+                            }
+                            isRunning = 0; // Quit
+                        }
+                    }
                 }
-
-                // Handle pause menu interactions
-                if (isPaused) {
-                    int action = handlePauseMenu(&event);
-                    if (action == 1) {
-                        isPaused = 0; // Resume
-                    } else if (action == 2) {
-                        // Save the current score before returning to the main menu
-                        if (total_score > 0) {
-                            HighScore newScore;
-                            strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
-                            newScore.score = total_score; // Save only the player's score
-                            newScore.duration = (SDL_GetTicks() - startTime) / 1000;
-
-                            addHighScore(highScores, &highScoreCount, newScore);
-                            saveScores(highScores, highScoreCount);
-                        }
-                        isPaused = 0;
-                        inMenu = 1; // Return to main menu
-                    } else if (action == 3) {
-                        // Save the current score before quitting
-                        if (total_score > 0) {
-                            HighScore newScore;
-                            strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
-                            newScore.score = total_score; // Save only the player's score
-                            newScore.duration = (SDL_GetTicks() - startTime) / 1000;
-
-                            addHighScore(highScores, &highScoreCount, newScore);
-                            saveScores(highScores, highScoreCount);
-                        }
-                        isRunning = 0; // Quit
+            } else if (event.type == SDL_KEYDOWN) {
+                // Handle keyboard input for movement
+                if (!inMenu && !isPaused && (gameMode == 0 || gameMode == 2)) {
+                    switch (event.key.keysym.sym) {
+                        case SDLK_UP:
+                            moveUp(grid, &total_score);
+                            addNewTile(grid);
+                            break;
+                        case SDLK_DOWN:
+                            moveDown(grid, &total_score);
+                            addNewTile(grid);
+                            break;
+                        case SDLK_LEFT:
+                            moveLeft(grid, &total_score);
+                            addNewTile(grid);
+                            break;
+                        case SDLK_RIGHT:
+                            moveRight(grid, &total_score);
+                            addNewTile(grid);
+                            break;
+                        default:
+                            break;
                     }
                 }
             }
-        } else if (event.type == SDL_KEYDOWN) {
-            // Handle keyboard input for movement
-            if (!inMenu && !isPaused && (gameMode == 0 || gameMode == 2)) {
-                switch (event.key.keysym.sym) {
-                    case SDLK_UP:
-                        moveUp(grid, &total_score);
-                        addNewTile(grid);
-                        break;
-                    case SDLK_DOWN:
-                        moveDown(grid, &total_score);
-                        addNewTile(grid);
-                        break;
-                    case SDLK_LEFT:
-                        moveLeft(grid, &total_score);
-                        addNewTile(grid);
-                        break;
-                    case SDLK_RIGHT:
-                        moveRight(grid, &total_score);
-                        addNewTile(grid);
-                        break;
-                    default:
-                        break;
+        }
+
+        // ===== STEP 3: Update the Machine's Direction =====
+        // Machine move logic (only in Machine or Player vs Machine mode)
+        if ((gameMode == 1 || gameMode == 2) && !isPaused) {
+            if (SDL_GetTicks() - machineMoveTime > 1000) { // Machine moves every 1 second
+                int direction = machineMove(machineGrid, &machine_score); // Get the direction
+                switch (direction) {
+                    case 0: strcpy(machineDirection, "UP"); break;
+                    case 1: strcpy(machineDirection, "DOWN"); break;
+                    case 2: strcpy(machineDirection, "LEFT"); break;
+                    case 3: strcpy(machineDirection, "RIGHT"); break;
+                    default: strcpy(machineDirection, "NONE"); break;
                 }
+                machineMoveTime = SDL_GetTicks(); // Reset the timer
             }
         }
-    }
 
-    // Machine move logic (only in Machine or Player vs Machine mode)
-    if ((gameMode == 1 || gameMode == 2) && !isPaused) {
-        if (SDL_GetTicks() - machineMoveTime > 500) { // Machine moves every 1 second
-            printf("Machine is making a move...\n");
-            machineMove(machineGrid, &machine_score); // Pass machine_score by reference
-            machineMoveTime = SDL_GetTicks(); // Reset the timer
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
+        SDL_RenderClear(renderer);
 
-            // Debug: Print the machine's grid after the move
-            printf("Machine's grid after move:\n");
-            for (int r = 0; r < SIZE; r++) {
-                for (int c = 0; c < SIZE; c++) {
-                    printf("%4d ", machineGrid[r][c]);
-                }
-                printf("\n");
+        if (inMenu) {
+            renderMainMenu(renderer, font); // Render the main menu
+        } else {
+            // Render game info (score, best score, time, and machine direction)
+            renderGameInfo(renderer, font);
+
+            // Render pause button
+            renderPauseButton(renderer);
+
+            // Center the grids horizontally
+            int playerGridX = (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+            int machineGridX = WINDOW_WIDTH / 2 + (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+            int gridY = 100; // Move the grid down
+
+            // Render player's grid (if in Player or Player vs Machine mode)
+            if (gameMode == 0 || gameMode == 2) {
+                renderGrid(renderer, font, grid, playerGridX, gridY, &total_score);
+            }
+
+            // Render machine's grid (if in Machine or Player vs Machine mode)
+            if (gameMode == 1 || gameMode == 2) {
+                renderGrid(renderer, font, machineGrid, machineGridX, gridY, &machine_score);
+            }
+
+            // Render pause menu if paused
+            if (isPaused) {
+                renderPauseMenu(renderer, font);
             }
         }
-    }
 
-    // Clear the screen
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
-    SDL_RenderClear(renderer);
+        // Update the screen
+        SDL_RenderPresent(renderer);
 
-    if (inMenu) {
-        renderMainMenu(renderer, font); // Render the main menu
-    } else {
-        // Render game info (score, best score, and time)
-        renderGameInfo(renderer, font);
-
-        // Render pause button
-        renderPauseButton(renderer);
-
-        // Center the grids horizontally
-        int playerGridX = (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
-        int machineGridX = WINDOW_WIDTH / 2 + (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
-        int gridY = 100; // Move the grid down
-
-        // Render player's grid (if in Player or Player vs Machine mode)
-        if (gameMode == 0 || gameMode == 2) {
-            renderGrid(renderer, font, grid, playerGridX, gridY, &total_score);
+        // Check for win condition
+        if (checkWin(grid) || isFull(machineGrid)) {
+            printf("You Win!\n");
+            renderWin(renderer, font);
+            resetGameState(); // Reset the game state
+            inMenu = 1; // Return to menu
         }
 
-        // Render machine's grid (if in Machine or Player vs Machine mode)
-        if (gameMode == 1 || gameMode == 2) {
-            renderGrid(renderer, font, machineGrid, machineGridX, gridY, &machine_score);
+        // Check for game over condition
+        if (isFull(grid) || checkWin(machineGrid)) {
+            printf("Game Over!\n");
+            renderGameOver(renderer, font);
+            resetGameState(); // Reset the game state
+            inMenu = 1; // Return to menu
         }
 
-        // Render pause menu if paused
-        if (isPaused) {
-            renderPauseMenu(renderer, font);
-        }
+        SDL_Delay(16); // Add a small delay to reduce CPU usage
     }
 
-    // Update the screen
-    SDL_RenderPresent(renderer);
+    // Render high scores before quitting
+    renderHighScores(renderer, font, highScores, highScoreCount);
 
-    // Check for win condition
-    if (checkWin(grid) || isFull(machineGrid)) {
-        printf("You Win!\n");
-        renderWin(renderer, font);
-        resetGameState(); // Reset the game state
-        inMenu = 1; // Return to menu
-    }
+    // Clean up resources
+    TTF_CloseFont(font);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit();
 
-    // Check for game over condition
-    if (isFull(grid) || checkWin(machineGrid)) {
-        printf("Game Over!\n");
-        renderGameOver(renderer, font);
-        resetGameState(); // Reset the game state
-        inMenu = 1; // Return to menu
-    }
-
-    SDL_Delay(16); // Add a small delay to reduce CPU usage
+    return 0;
 }
-
-// Render high scores before quitting
-renderHighScores(renderer, font, highScores, highScoreCount);
-
-// Clean up resources
-TTF_CloseFont(font);
-SDL_DestroyRenderer(renderer);
-SDL_DestroyWindow(window);
-TTF_Quit();
-SDL_Quit();
-
-return 0;
-} // <-- This is the missing closing brace for the `main` function
