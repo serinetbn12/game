@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 
-// Constants for game configuration
+
 #define SIZE 4
 #define TARGET 2048
 #define WINDOW_WIDTH 1000
@@ -42,7 +42,7 @@ SDL_Rect buttonPvsM = { (WINDOW_WIDTH - 350) / 2, 350, 350, 60 };    // Player v
 SDL_Rect buttonQuit = { (WINDOW_WIDTH - 350) / 2, 450, 350, 60 };    // Quit
 
 
-// Function to get the color for a specific tile value
+
 // Function to get the color for a specific tile value
 SDL_Color getTileColor(int value) {
     SDL_Color color;
@@ -781,27 +781,69 @@ void renderHighScores(SDL_Renderer *renderer, TTF_Font *font, HighScore highScor
 
 // Function to render the "Game Over" screen
 void renderGameOver(SDL_Renderer *renderer, TTF_Font *font) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    // Clear the screen with a black background
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_Color color = {255, 0, 0, 255}; // Red text
-    char *text = "Game Over! Press any key to continue...";
-    SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect textRect = {(WINDOW_WIDTH - surface->w) / 2, (WINDOW_HEIGHT - surface->h) / 2, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &textRect);
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
+    // Render "Game Over" text
+    SDL_Color textColor = {255, 0, 0, 255}; // Red text
+    char *gameOverText = "Game Over!";
+    SDL_Surface *gameOverSurface = TTF_RenderText_Solid(font, gameOverText, textColor);
+    SDL_Texture *gameOverTexture = SDL_CreateTextureFromSurface(renderer, gameOverSurface);
+    SDL_Rect gameOverRect = {
+        (WINDOW_WIDTH - gameOverSurface->w) / 2, // Center horizontally
+        100, // Position vertically
+        gameOverSurface->w,
+        gameOverSurface->h
+    };
+    SDL_RenderCopy(renderer, gameOverTexture, NULL, &gameOverRect);
+    SDL_FreeSurface(gameOverSurface);
+    SDL_DestroyTexture(gameOverTexture);
 
+    // Render "Go to Main Menu" button
+    SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
+    SDL_Rect menuButton = {
+        (WINDOW_WIDTH - 200) / 2, // Center horizontally
+        200, // Position below the "Game Over" text
+        200, // Button width
+        50   // Button height
+    };
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &menuButton);
+
+    // Render button text
+    char *buttonText = "Main Menu";
+    SDL_Surface *buttonSurface = TTF_RenderText_Solid(font, buttonText, textColor);
+    SDL_Texture *buttonTexture = SDL_CreateTextureFromSurface(renderer, buttonSurface);
+    SDL_Rect buttonTextRect = {
+        menuButton.x + (menuButton.w - buttonSurface->w) / 2, // Center text horizontally
+        menuButton.y + (menuButton.h - buttonSurface->h) / 2, // Center text vertically
+        buttonSurface->w,
+        buttonSurface->h
+    };
+    SDL_RenderCopy(renderer, buttonTexture, NULL, &buttonTextRect);
+    SDL_FreeSurface(buttonSurface);
+    SDL_DestroyTexture(buttonTexture);
+
+    // Update the screen
     SDL_RenderPresent(renderer);
 
-    // Wait for a key press
+    // Wait for user input
     int waiting = 1;
     SDL_Event event;
     while (waiting) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_KEYDOWN || event.type == SDL_QUIT) {
-                waiting = 0; // Exit the loop
+            if (event.type == SDL_QUIT) {
+                waiting = 0; // Exit the game
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX = event.button.x;
+                int mouseY = event.button.y;
+
+                // Check if the "Main Menu" button is clicked
+                if (mouseX >= menuButton.x && mouseX <= menuButton.x + menuButton.w &&
+                    mouseY >= menuButton.y && mouseY <= menuButton.y + menuButton.h) {
+                    waiting = 0; // Exit the loop and return to the main menu
+                }
             }
         }
         SDL_Delay(16); // Reduce CPU usage
@@ -810,33 +852,88 @@ void renderGameOver(SDL_Renderer *renderer, TTF_Font *font) {
 
 // Function to render the "You Win" screen
 void renderWin(SDL_Renderer *renderer, TTF_Font *font) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
+    // Clear the screen with a black background
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
     SDL_RenderClear(renderer);
 
-    SDL_Color color = {0, 255, 0, 255}; // Green text
-    char *text = "You Win! Press any key to continue...";
-    SDL_Surface *surface = TTF_RenderText_Solid(font, text, color);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect textRect = {(WINDOW_WIDTH - surface->w) / 2, (WINDOW_HEIGHT - surface->h) / 2, surface->w, surface->h};
-    SDL_RenderCopy(renderer, texture, NULL, &textRect);
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
+    // Render "You Win" text
+    SDL_Color textColor = {0, 255, 0, 255}; // Green text
+    char *winText = "You Win!";
+    SDL_Surface *winSurface = TTF_RenderText_Solid(font, winText, textColor);
+    SDL_Texture *winTexture = SDL_CreateTextureFromSurface(renderer, winSurface);
+    SDL_Rect winRect = {
+        (WINDOW_WIDTH - winSurface->w) / 2, // Center horizontally
+        100, // Position vertically
+        winSurface->w,
+        winSurface->h
+    };
+    SDL_RenderCopy(renderer, winTexture, NULL, &winRect);
+    SDL_FreeSurface(winSurface);
+    SDL_DestroyTexture(winTexture);
 
+    // Render "Go to Main Menu" button
+    SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
+    SDL_Rect menuButton = {
+        (WINDOW_WIDTH - 200) / 2, // Center horizontally
+        200, // Position below the "You Win" text
+        200, // Button width
+        50   // Button height
+    };
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &menuButton);
+
+    // Render button text
+    char *buttonText = "Main Menu";
+    SDL_Surface *buttonSurface = TTF_RenderText_Solid(font, buttonText, textColor);
+    SDL_Texture *buttonTexture = SDL_CreateTextureFromSurface(renderer, buttonSurface);
+    SDL_Rect buttonTextRect = {
+        menuButton.x + (menuButton.w - buttonSurface->w) / 2, // Center text horizontally
+        menuButton.y + (menuButton.h - buttonSurface->h) / 2, // Center text vertically
+        buttonSurface->w,
+        buttonSurface->h
+    };
+    SDL_RenderCopy(renderer, buttonTexture, NULL, &buttonTextRect);
+    SDL_FreeSurface(buttonSurface);
+    SDL_DestroyTexture(buttonTexture);
+
+    // Update the screen
     SDL_RenderPresent(renderer);
 
-    // Wait for a key press
+    // Wait for user input
     int waiting = 1;
     SDL_Event event;
     while (waiting) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_KEYDOWN || event.type == SDL_QUIT) {
-                waiting = 0; // Exit the loop
+            if (event.type == SDL_QUIT) {
+                waiting = 0; // Exit the game
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int mouseX = event.button.x;
+                int mouseY = event.button.y;
+
+                // Check if the "Main Menu" button is clicked
+                if (mouseX >= menuButton.x && mouseX <= menuButton.x + menuButton.w &&
+                    mouseY >= menuButton.y && mouseY <= menuButton.y + menuButton.h) {
+                    waiting = 0; // Exit the loop and return to the main menu
+                }
             }
         }
         SDL_Delay(16); // Reduce CPU usage
     }
 }
+void resetGameState() {
+    // Reset player grid and score
+    initializeGrid(grid);
+    total_score = 0;
 
+    // Reset machine grid and score (if applicable)
+    if (gameMode == 1 || gameMode == 2) {
+        initializeGrid(machineGrid);
+        machine_score = 0;
+    }
+
+    // Reset the timer
+    startTime = SDL_GetTicks();
+}
 // Main function
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
@@ -866,9 +963,6 @@ int main(int argc, char* argv[]) {
 
     // Game state variables
     int isRunning = 1; // Main loop flag
-    int inMenu = 1; // 1: Show menu, 0: Show game
-    int isPaused = 0; // Pause state
-    Uint32 startTime = SDL_GetTicks(); // Game start time
     Uint32 machineMoveTime = SDL_GetTicks(); // Timer for machine moves
     SDL_Event event;
 
@@ -927,20 +1021,19 @@ int main(int argc, char* argv[]) {
                     if (mouseX >= buttonPlayer.x && mouseX <= buttonPlayer.x + buttonPlayer.w &&
                         mouseY >= buttonPlayer.y && mouseY <= buttonPlayer.y + buttonPlayer.h) {
                         gameMode = 0; // Player Mode
-                        initializeGrid(grid);
+                        resetGameState(); // Reset the game state
                         startTime = SDL_GetTicks();
                         inMenu = 0; // Exit the menu
                     } else if (mouseX >= buttonMachine.x && mouseX <= buttonMachine.x + buttonMachine.w &&
                                mouseY >= buttonMachine.y && mouseY <= buttonMachine.y + buttonMachine.h) {
                         gameMode = 1; // Machine Mode
-                        initializeGrid(machineGrid);
+                        resetGameState(); // Reset the game state
                         startTime = SDL_GetTicks();
                         inMenu = 0; // Exit the menu
                     } else if (mouseX >= buttonPvsM.x && mouseX <= buttonPvsM.x + buttonPvsM.w &&
                                mouseY >= buttonPvsM.y && mouseY <= buttonPvsM.y + buttonPvsM.h) {
                         gameMode = 2; // Player vs Machine Mode
-                        initializeGrid(grid);
-                        initializeGrid(machineGrid);
+                        resetGameState(); // Reset the game state
                         startTime = SDL_GetTicks();
                         inMenu = 0; // Exit the menu
                     } else if (mouseX >= buttonQuit.x && mouseX <= buttonQuit.x + buttonQuit.w &&
