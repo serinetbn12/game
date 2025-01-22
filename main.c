@@ -347,7 +347,7 @@ void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderFillRect(renderer, &overlay);
 
     // Render the title "PAUSE MENU"
-    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72);
+    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72); 
     if (!titleFont) {
         printf("Error loading title font: %s\n", TTF_GetError());
         return;
@@ -1139,7 +1139,7 @@ int main(int argc, char* argv[]) {
 
         // Machine move logic (only in Machine or Player vs Machine mode)
         if ((gameMode == 1 || gameMode == 2) && !isPaused) {
-            if (SDL_GetTicks() - machineMoveTime > 1000) { // Machine moves every 1 second
+            if (SDL_GetTicks() - machineMoveTime > 500) { // Machine moves every 1 second
                 printf("Machine is making a move...\n");
                 machineMove(machineGrid, &machine_score); // Pass machine_score by reference
                 machineMoveTime = SDL_GetTicks(); // Reset the timer
