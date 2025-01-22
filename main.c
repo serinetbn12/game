@@ -447,7 +447,15 @@ void saveGameState(int grid[SIZE][SIZE], int score, Uint32 startTime) {
         fclose(file);
     }
 }
-
+void loadGameState(int grid[SIZE][SIZE], int *score, Uint32 *startTime) {
+    FILE *file = fopen("saved_game.dat", "rb");
+    if (file) {
+        fread(grid, sizeof(int), SIZE * SIZE, file);
+        fread(score, sizeof(int), 1, file);
+        fread(startTime, sizeof(Uint32), 1, file);
+        fclose(file);
+    }
+}
 // Function to render directional buttons
 void renderDirectionalButtons(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
@@ -910,9 +918,29 @@ int main(int argc, char* argv[]) {
                         if (action == 1) {
                             isPaused = 0; // Resume
                         } else if (action == 2) {
+                            // Save the current score before returning to the main menu
+                            if (total_score > 0) {
+                                HighScore newScore;
+                                strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                                newScore.score = total_score; // Save only the player's score
+                                newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+
+                                addHighScore(highScores, &highScoreCount, newScore);
+                                saveScores(highScores, highScoreCount);
+                            }
                             isPaused = 0;
                             inMenu = 1; // Return to main menu
                         } else if (action == 3) {
+                            // Save the current score before quitting
+                            if (total_score > 0) {
+                                HighScore newScore;
+                                strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
+                                newScore.score = total_score; // Save only the player's score
+                                newScore.duration = (SDL_GetTicks() - startTime) / 1000;
+
+                                addHighScore(highScores, &highScoreCount, newScore);
+                                saveScores(highScores, highScoreCount);
+                            }
                             isRunning = 0; // Quit
                         }
                     }
