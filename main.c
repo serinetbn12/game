@@ -36,10 +36,7 @@ SDL_Rect buttonPlayer = { (WINDOW_WIDTH - 350) / 2, 150, 350, 60 }; // Player Mo
 SDL_Rect buttonMachine = { (WINDOW_WIDTH - 350) / 2, 250, 350, 60 }; // Machine Mode
 SDL_Rect buttonPvsM = { (WINDOW_WIDTH - 350) / 2, 350, 350, 60 };    // Player vs Machine
 SDL_Rect buttonQuit = { (WINDOW_WIDTH - 350) / 2, 450, 350, 60 };    // Quit
-int isMouseDragging = 0; // Flag to track if the mouse is being dragged
-int startMouseX = 0;     // X position when the mouse button is pressed
-int startMouseY = 0;     // Y position when the mouse button is pressed
-const int SWIPE_THRESHOLD = 50; // Minimum distance for a swipe to trigger a move
+
 
 
 // Function to initialize the grid
@@ -83,10 +80,11 @@ void moveUp(int grid[SIZE][SIZE], int *score) {
                     grid[row - 1][c] = grid[row][c]; // Move tile up
                     grid[row][c] = 0;
                     row--;
+                    *score += 1; // Increment score for each move
                 }
                 if (row > 0 && grid[row - 1][c] == grid[row][c] && !merged[row - 1]) {
                     grid[row - 1][c] *= 2; // Merge tiles
-                    *score += grid[row - 1][c]; // Update score
+                    *score += grid[row - 1][c]; // Update score with merged value
                     grid[row][c] = 0;
                     merged[row - 1] = 1; // Mark as merged
                 }
@@ -94,11 +92,10 @@ void moveUp(int grid[SIZE][SIZE], int *score) {
         }
     }
 }
-
 // Function to handle moving down
 void moveDown(int grid[SIZE][SIZE], int *score) {
     for (int c = 0; c < SIZE; c++) {
-        int merged[SIZE] = {0};
+        int merged[SIZE] = {0}; // Tracks if a tile has merged
         for (int r = SIZE - 2; r >= 0; r--) {
             if (grid[r][c] != 0) {
                 int row = r;
@@ -106,10 +103,11 @@ void moveDown(int grid[SIZE][SIZE], int *score) {
                     grid[row + 1][c] = grid[row][c]; // Move tile down
                     grid[row][c] = 0;
                     row++;
+                    *score += 1; // Increment score for each move
                 }
                 if (row < SIZE - 1 && grid[row + 1][c] == grid[row][c] && !merged[row + 1]) {
                     grid[row + 1][c] *= 2; // Merge tiles
-                    *score += grid[row + 1][c]; // Update score
+                    *score += grid[row + 1][c]; // Update score with merged value
                     grid[row][c] = 0;
                     merged[row + 1] = 1; // Mark as merged
                 }
@@ -121,7 +119,7 @@ void moveDown(int grid[SIZE][SIZE], int *score) {
 // Function to handle moving left
 void moveLeft(int grid[SIZE][SIZE], int *score) {
     for (int r = 0; r < SIZE; r++) {
-        int merged[SIZE] = {0};
+        int merged[SIZE] = {0}; // Tracks if a tile has merged
         for (int c = 1; c < SIZE; c++) {
             if (grid[r][c] != 0) {
                 int col = c;
@@ -129,10 +127,11 @@ void moveLeft(int grid[SIZE][SIZE], int *score) {
                     grid[r][col - 1] = grid[r][col]; // Move tile left
                     grid[r][col] = 0;
                     col--;
+                    *score += 1; // Increment score for each move
                 }
                 if (col > 0 && grid[r][col - 1] == grid[r][col] && !merged[col - 1]) {
                     grid[r][col - 1] *= 2; // Merge tiles
-                    *score += grid[r][col - 1]; // Update score
+                    *score += grid[r][col - 1]; // Update score with merged value
                     grid[r][col] = 0;
                     merged[col - 1] = 1; // Mark as merged
                 }
@@ -144,7 +143,7 @@ void moveLeft(int grid[SIZE][SIZE], int *score) {
 // Function to handle moving right
 void moveRight(int grid[SIZE][SIZE], int *score) {
     for (int r = 0; r < SIZE; r++) {
-        int merged[SIZE] = {0};
+        int merged[SIZE] = {0}; // Tracks if a tile has merged
         for (int c = SIZE - 2; c >= 0; c--) {
             if (grid[r][c] != 0) {
                 int col = c;
@@ -152,10 +151,11 @@ void moveRight(int grid[SIZE][SIZE], int *score) {
                     grid[r][col + 1] = grid[r][col]; // Move tile right
                     grid[r][col] = 0;
                     col++;
+                    *score += 1; // Increment score for each move
                 }
                 if (col < SIZE - 1 && grid[r][col + 1] == grid[r][col] && !merged[col + 1]) {
                     grid[r][col + 1] *= 2; // Merge tiles
-                    *score += grid[r][col + 1]; // Update score
+                    *score += grid[r][col + 1]; // Update score with merged value
                     grid[r][col] = 0;
                     merged[col + 1] = 1; // Mark as merged
                 }
@@ -163,7 +163,6 @@ void moveRight(int grid[SIZE][SIZE], int *score) {
         }
     }
 }
-
 // Function to check if there are no more valid moves left
 int isFull(int grid[SIZE][SIZE]) {
     for (int r = 0; r < SIZE; r++) {
@@ -279,30 +278,146 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderPresent(renderer);
 }
 // Function to render the pause button
-void renderPauseButton(SDL_Renderer *renderer, TTF_Font *font) {
-    SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
-    SDL_Rect pauseButton = {WINDOW_WIDTH - 150, 10, 140, 50}; // Position and size of the button
+void renderPauseButton(SDL_Renderer *renderer) {
+    int buttonRadius = 25; // Radius of the circular button
+    int buttonX = WINDOW_WIDTH - 50; // Position in the top-right corner
+    int buttonY = 50;
 
-    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
-    SDL_RenderFillRect(renderer, &pauseButton);
+    // Draw the circular button
+    SDL_SetRenderDrawColor(renderer, 255, 182, 193, 255); // Pink color
+    for (int w = 0; w < buttonRadius * 2; w++) {
+        for (int h = 0; h < buttonRadius * 2; h++) {
+            int dx = buttonRadius - w; // Horizontal offset
+            int dy = buttonRadius - h; // Vertical offset
+            if ((dx * dx + dy * dy) <= (buttonRadius * buttonRadius)) {
+                SDL_RenderDrawPoint(renderer, buttonX + dx, buttonY + dy);
+            }
+        }
+    }
 
-    SDL_Color textColor = {0, 0, 0, 255}; // Black text
-    SDL_Surface *surface = TTF_RenderText_Solid(font, "Pause", textColor);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-
-    SDL_Rect textRect = {
-        pauseButton.x + (pauseButton.w - surface->w) / 2,
-        pauseButton.y + (pauseButton.h - surface->h) / 2,
-        surface->w,
-        surface->h
-    };
-
-    SDL_RenderCopy(renderer, texture, NULL, &textRect);
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
+    // Draw the pause symbol (two vertical bars)
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black color
+    SDL_Rect bar1 = {buttonX - 8, buttonY - 10, 5, 20}; // Left bar
+    SDL_Rect bar2 = {buttonX + 3, buttonY - 10, 5, 20}; // Right bar
+    SDL_RenderFillRect(renderer, &bar1);
+    SDL_RenderFillRect(renderer, &bar2);
 }
 
+//pause menu
+void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
+    // Clear the screen with a semi-transparent overlay
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200); // Semi-transparent black
+    SDL_Rect overlay = {0, 0, WINDOW_WIDTH, WINDOW_HEIGHT};
+    SDL_RenderFillRect(renderer, &overlay);
 
+    // Render the title "PAUSE MENU"
+    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72); // Larger font for the title
+    if (!titleFont) {
+        printf("Error loading title font: %s\n", TTF_GetError());
+        return;
+    }
+
+    SDL_Color titleColor = {255, 105, 180, 255}; // Pink color for the title
+    SDL_Surface *titleSurface = TTF_RenderText_Solid(titleFont, "PAUSE MENU", titleColor);
+    SDL_Texture *titleTexture = SDL_CreateTextureFromSurface(renderer, titleSurface);
+
+    int titleX = (WINDOW_WIDTH - titleSurface->w) / 2; // Center title horizontally
+    int titleY = 50; // Position title at the top of the menu
+    SDL_Rect titleRect = {titleX, titleY, titleSurface->w, titleSurface->h};
+    SDL_RenderCopy(renderer, titleTexture, NULL, &titleRect);
+
+    SDL_FreeSurface(titleSurface);
+    SDL_DestroyTexture(titleTexture);
+    TTF_CloseFont(titleFont);
+
+    // Define menu buttons
+    SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color for buttons
+    SDL_Color textColor = {0, 0, 0, 255}; // Black text
+
+    int buttonWidth = 350; // Width of the buttons
+    int buttonHeight = 60; // Height of the buttons
+    int buttonX = (WINDOW_WIDTH - buttonWidth) / 2; // Center buttons horizontally
+
+    // Resume button
+    SDL_Rect resumeButton = {buttonX, 200, buttonWidth, buttonHeight};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &resumeButton);
+
+    SDL_Surface *resumeSurface = TTF_RenderText_Solid(font, "Resume", textColor);
+    SDL_Texture *resumeTexture = SDL_CreateTextureFromSurface(renderer, resumeSurface);
+    SDL_Rect resumeTextRect = {
+        resumeButton.x + (resumeButton.w - resumeSurface->w) / 2,
+        resumeButton.y + (resumeButton.h - resumeSurface->h) / 2,
+        resumeSurface->w,
+        resumeSurface->h
+    };
+    SDL_RenderCopy(renderer, resumeTexture, NULL, &resumeTextRect);
+    SDL_FreeSurface(resumeSurface);
+    SDL_DestroyTexture(resumeTexture);
+
+    // Main Menu button
+    SDL_Rect mainMenuButton = {buttonX, 300, buttonWidth, buttonHeight};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &mainMenuButton);
+
+    SDL_Surface *mainMenuSurface = TTF_RenderText_Solid(font, "Main Menu", textColor);
+    SDL_Texture *mainMenuTexture = SDL_CreateTextureFromSurface(renderer, mainMenuSurface);
+    SDL_Rect mainMenuTextRect = {
+        mainMenuButton.x + (mainMenuButton.w - mainMenuSurface->w) / 2,
+        mainMenuButton.y + (mainMenuButton.h - mainMenuSurface->h) / 2,
+        mainMenuSurface->w,
+        mainMenuSurface->h
+    };
+    SDL_RenderCopy(renderer, mainMenuTexture, NULL, &mainMenuTextRect);
+    SDL_FreeSurface(mainMenuSurface);
+    SDL_DestroyTexture(mainMenuTexture);
+
+    // Quit button
+    SDL_Rect quitButton = {buttonX, 400, buttonWidth, buttonHeight};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &quitButton);
+
+    SDL_Surface *quitSurface = TTF_RenderText_Solid(font, "Quit", textColor);
+    SDL_Texture *quitTexture = SDL_CreateTextureFromSurface(renderer, quitSurface);
+    SDL_Rect quitTextRect = {
+        quitButton.x + (quitButton.w - quitSurface->w) / 2,
+        quitButton.y + (quitButton.h - quitSurface->h) / 2,
+        quitSurface->w,
+        quitSurface->h
+    };
+    SDL_RenderCopy(renderer, quitTexture, NULL, &quitTextRect);
+    SDL_FreeSurface(quitSurface);
+    SDL_DestroyTexture(quitTexture);
+
+    // Update the screen
+    SDL_RenderPresent(renderer);
+}
+//handle pause menu
+int handlePauseMenu(SDL_Event *event) {
+    int mouseX = event->button.x;
+    int mouseY = event->button.y;
+
+    int buttonWidth = 350;
+    int buttonHeight = 60;
+    int buttonX = (WINDOW_WIDTH - buttonWidth) / 2;
+
+    SDL_Rect resumeButton = {buttonX, 200, buttonWidth, buttonHeight};
+    SDL_Rect mainMenuButton = {buttonX, 300, buttonWidth, buttonHeight};
+    SDL_Rect quitButton = {buttonX, 400, buttonWidth, buttonHeight};
+
+    if (mouseX >= resumeButton.x && mouseX <= resumeButton.x + resumeButton.w &&
+        mouseY >= resumeButton.y && mouseY <= resumeButton.y + resumeButton.h) {
+        return 1; // Resume
+    } else if (mouseX >= mainMenuButton.x && mouseX <= mainMenuButton.x + mainMenuButton.w &&
+               mouseY >= mainMenuButton.y && mouseY <= mainMenuButton.y + mainMenuButton.h) {
+        return 2; // Main Menu
+    } else if (mouseX >= quitButton.x && mouseX <= quitButton.x + quitButton.w &&
+               mouseY >= quitButton.y && mouseY <= quitButton.y + quitButton.h) {
+        return 3; // Quit
+    }
+
+    return 0; // No action
+}
 // Function to render the name input screen
 void renderNameInput(SDL_Renderer *renderer, TTF_Font *font, const char *inputText) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
@@ -332,31 +447,6 @@ void saveGameState(int grid[SIZE][SIZE], int score, Uint32 startTime) {
         fclose(file);
     }
 }
-
-// Function to render the stop button
-void renderStopButton(SDL_Renderer *renderer, TTF_Font *font) {
-    SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
-    SDL_Rect stopButton = {WINDOW_WIDTH - 150, 70, 140, 50}; // Position and size of the button
-
-    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
-    SDL_RenderFillRect(renderer, &stopButton);
-
-    SDL_Color textColor = {0, 0, 0, 255}; // Black text
-    SDL_Surface *surface = TTF_RenderText_Solid(font, "Stop", textColor);
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
-
-    SDL_Rect textRect = {
-        stopButton.x + (stopButton.w - surface->w) / 2,
-        stopButton.y + (stopButton.h - surface->h) / 2,
-        surface->w,
-        surface->h
-    };
-
-    SDL_RenderCopy(renderer, texture, NULL, &textRect);
-    SDL_FreeSurface(surface);
-    SDL_DestroyTexture(texture);
-}
-
 
 // Function to render directional buttons
 void renderDirectionalButtons(SDL_Renderer *renderer, TTF_Font *font) {
@@ -408,36 +498,53 @@ void machineMove(int grid[SIZE][SIZE], int *score) {
     int move = rand() % 4; // Randomly choose a move (0: UP, 1: DOWN, 2: LEFT, 3: RIGHT)
     switch (move) {
         case 0:
-            moveUp(grid, score);
+            moveUp(grid, score); // Update the machine's score
             break;
         case 1:
-            moveDown(grid, score);
+            moveDown(grid, score); // Update the machine's score
             break;
         case 2:
-            moveLeft(grid, score);
+            moveLeft(grid, score); // Update the machine's score
             break;
         case 3:
-            moveRight(grid, score);
+            moveRight(grid, score); // Update the machine's score
             break;
     }
     addNewTile(grid); // Add a new tile after the move
 }
-
 // Function to render game info (score, best score, and time)
 void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color color = {255, 255, 255, 255}; // White text
     char infoText[100];
-    sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec",
-            total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
 
-    SDL_Surface *surface = TTF_RenderText_Solid(font, infoText, color); // Render text
+    if (gameMode == 1) { // Machine Mode
+        sprintf(infoText, "Machine Score: %d | Best: %d | Time: %d sec",
+                machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+    } else if (gameMode == 2) { // Player vs Machine Mode
+        sprintf(infoText, "Player Score: %d | Machine Score: %d | Best: %d | Time: %d sec",
+                total_score, machine_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+    } else { // Player Mode
+        sprintf(infoText, "Score: %d | Best: %d | Time: %d sec",
+                total_score, best_score, (SDL_GetTicks() - startTime) / 1000);
+    }
+
+    // Use a smaller font for the score and time display
+    TTF_Font *smallFont = TTF_OpenFont("arial.ttf", 33); // Smaller font size (24)
+    if (!smallFont) {
+        printf("Error loading small font: %s\n", TTF_GetError());
+        return;
+    }
+
+    SDL_Surface *surface = TTF_RenderText_Solid(smallFont, infoText, color); // Render text
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture
     SDL_Rect textRect = {10, 10, surface->w, surface->h}; // Position at top-left
     SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
-    SDL_FreeSurface(surface); // Free surface
-    SDL_DestroyTexture(texture); // Free texture
-}
 
+    // Clean up
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+    TTF_CloseFont(smallFont);
+}
 // Function to save high scores
 void saveScores(HighScore highScores[], int count) {
     FILE *file = fopen("highscores.dat", "wb");
@@ -699,13 +806,16 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // Define menu button rectangles
-    SDL_Rect buttonPlayer = { (WINDOW_WIDTH - 350) / 2, 150, 350, 60 }; // Player Mode
-    SDL_Rect buttonMachine = { (WINDOW_WIDTH - 350) / 2, 250, 350, 60 }; // Machine Mode
-    SDL_Rect buttonPvsM = { (WINDOW_WIDTH - 350) / 2, 350, 350, 60 };    // Player vs Machine
-    SDL_Rect buttonQuit = { (WINDOW_WIDTH - 350) / 2, 450, 350, 60 };    // Quit
+    // Initialize grids
+    initializeGrid(grid);
+    initializeGrid(machineGrid);
 
+    // Game state variables
     int isRunning = 1; // Main loop flag
+    int inMenu = 1; // 1: Show menu, 0: Show game
+    int isPaused = 0; // Pause state
+    Uint32 startTime = SDL_GetTicks(); // Game start time
+    Uint32 machineMoveTime = SDL_GetTicks(); // Timer for machine moves
     SDL_Event event;
 
     // Name input loop
@@ -738,59 +848,8 @@ int main(int argc, char* argv[]) {
 
     SDL_StopTextInput(); // Disable text input
 
-    // Initialize grids
-    initializeGrid(grid);
-    initializeGrid(machineGrid);
-
-    Uint32 machineMoveTime = SDL_GetTicks(); // Timer for machine moves
-    int isPaused = 0; // Pause state
-    int isStopped = 0; // Stop state
-
+    // Main game loop
     while (isRunning) {
-        if (inMenu) {
-            renderMainMenu(renderer, font); // Render the main menu
-        } else {
-            // Clear the screen
-            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
-            SDL_RenderClear(renderer);
-
-            // Render game info (score, best score, and time)
-            renderGameInfo(renderer, font);
-
-            // Render pause and stop buttons
-            renderPauseButton(renderer, font);
-            renderStopButton(renderer, font);
-
-            // Center the grids horizontally
-            int playerGridX = (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
-            int machineGridX = WINDOW_WIDTH / 2 + (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
-
-            // Render player's grid (if in Player or Player vs Machine mode)
-            if (gameMode == 0 || gameMode == 2) {
-                renderGrid(renderer, font, grid, playerGridX, 100, &total_score);
-            }
-
-            // Render machine's grid (if in Machine or Player vs Machine mode)
-            if (gameMode == 1 || gameMode == 2) {
-                renderGrid(renderer, font, machineGrid, machineGridX, 100, &machine_score);
-            }
-
-            // Update the screen
-            SDL_RenderPresent(renderer);
-
-            // Check for win condition
-            if (checkWin(grid)) {
-                renderWin(renderer, font);
-                inMenu = 1; // Return to menu
-            }
-
-            // Check for game over condition
-            if (isFull(grid)) {
-                renderGameOver(renderer, font);
-                inMenu = 1; // Return to menu
-            }
-        }
-
         // Event handling
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT) {
@@ -798,7 +857,7 @@ int main(int argc, char* argv[]) {
                 if (total_score > 0) {
                     HighScore newScore;
                     strncpy(newScore.playerName, playerName, sizeof(newScore.playerName) - 1);
-                    newScore.score = total_score;
+                    newScore.score = total_score; // Save only the player's score
                     newScore.duration = (SDL_GetTicks() - startTime) / 1000;
 
                     addHighScore(highScores, &highScoreCount, newScore);
@@ -836,25 +895,31 @@ int main(int argc, char* argv[]) {
                     }
                 } else {
                     // Handle pause button click
-                    if (mouseX >= WINDOW_WIDTH - 150 && mouseX <= WINDOW_WIDTH - 10 &&
-                        mouseY >= 10 && mouseY <= 60) {
+                    int buttonRadius = 25;
+                    int buttonX = WINDOW_WIDTH - 50;
+                    int buttonY = 50;
+                    int dx = mouseX - buttonX;
+                    int dy = mouseY - buttonY;
+                    if (dx * dx + dy * dy <= buttonRadius * buttonRadius) {
                         isPaused = !isPaused; // Toggle pause state
-                        if (isPaused) {
-                            inMenu = 1; // Show main menu
-                        }
                     }
 
-                    // Handle stop button click
-                    if (mouseX >= WINDOW_WIDTH - 150 && mouseX <= WINDOW_WIDTH - 10 &&
-                        mouseY >= 70 && mouseY <= 120) {
-                        saveGameState(grid, total_score, startTime);
-                        isStopped = 1; // Stop the game
-                        inMenu = 1; // Show main menu
+                    // Handle pause menu interactions
+                    if (isPaused) {
+                        int action = handlePauseMenu(&event);
+                        if (action == 1) {
+                            isPaused = 0; // Resume
+                        } else if (action == 2) {
+                            isPaused = 0;
+                            inMenu = 1; // Return to main menu
+                        } else if (action == 3) {
+                            isRunning = 0; // Quit
+                        }
                     }
                 }
             } else if (event.type == SDL_KEYDOWN) {
                 // Handle keyboard input for movement
-                if (!inMenu && (gameMode == 0 || gameMode == 2)) {
+                if (!inMenu && !isPaused && (gameMode == 0 || gameMode == 2)) {
                     switch (event.key.keysym.sym) {
                         case SDLK_UP:
                             moveUp(grid, &total_score);
@@ -880,11 +945,60 @@ int main(int argc, char* argv[]) {
         }
 
         // Machine move logic (only in Machine or Player vs Machine mode)
-        if (gameMode == 1 || gameMode == 2) {
+        if ((gameMode == 1 || gameMode == 2) && !isPaused) {
             if (SDL_GetTicks() - machineMoveTime > 1000) { // Machine moves every 1 second
-                machineMove(machineGrid, &machine_score);
-                machineMoveTime = SDL_GetTicks();
+                machineMove(machineGrid, &machine_score); // Pass machine_score by reference
+                machineMoveTime = SDL_GetTicks(); // Reset the timer
             }
+        }
+
+        // Clear the screen
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black
+        SDL_RenderClear(renderer);
+
+        if (inMenu) {
+            renderMainMenu(renderer, font); // Render the main menu
+        } else {
+            // Render game info (score, best score, and time)
+            renderGameInfo(renderer, font);
+
+            // Render pause button
+            renderPauseButton(renderer);
+
+            // Center the grids horizontally
+            int playerGridX = (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+            int machineGridX = WINDOW_WIDTH / 2 + (WINDOW_WIDTH / 2 - (SIZE * (GRID_SIZE + GRID_SPACING))) / 2;
+            int gridY = 100; // Move the grid down
+
+            // Render player's grid (if in Player or Player vs Machine mode)
+            if (gameMode == 0 || gameMode == 2) {
+                renderGrid(renderer, font, grid, playerGridX, gridY, &total_score);
+            }
+
+            // Render machine's grid (if in Machine or Player vs Machine mode)
+            if (gameMode == 1 || gameMode == 2) {
+                renderGrid(renderer, font, machineGrid, machineGridX, gridY, &machine_score);
+            }
+
+            // Render pause menu if paused
+            if (isPaused) {
+                renderPauseMenu(renderer, font);
+            }
+        }
+
+        // Update the screen
+        SDL_RenderPresent(renderer);
+
+        // Check for win condition
+        if (checkWin(grid)) {
+            renderWin(renderer, font);
+            inMenu = 1; // Return to menu
+        }
+
+        // Check for game over condition
+        if (isFull(grid)) {
+            renderGameOver(renderer, font);
+            inMenu = 1; // Return to menu
         }
 
         SDL_Delay(16); // Add a small delay to reduce CPU usage
