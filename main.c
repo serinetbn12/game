@@ -5,20 +5,23 @@
 #include <stdio.h>
 #include <string.h>
 
+// Constants for game configuration
 #define SIZE 4
 #define TARGET 2048
-#define WINDOW_WIDTH 1000  // Wider window to fit two grids
-#define WINDOW_HEIGHT 550  // Reasonable height
-#define GRID_SIZE 100      // Slightly larger grid cells
-#define GRID_SPACING 10    // Spacing between cells
-#define FONT_SIZE 36       // Slightly larger font size
+#define WINDOW_WIDTH 1000
+#define WINDOW_HEIGHT 550
+#define GRID_SIZE 100
+#define GRID_SPACING 10
+#define FONT_SIZE 36
 
+// Structure to store high scores
 typedef struct {
     char playerName[50];
     int score;
     int duration;
 } HighScore;
 
+// Global variables
 HighScore highScores[5] = {0}; // Array to store high scores
 int grid[SIZE][SIZE]; // Player's game grid
 int machineGrid[SIZE][SIZE]; // Machine's game grid
@@ -26,37 +29,39 @@ int total_score = 0; // Player's current score
 int machine_score = 0; // Machine's current score
 int best_score = 0; // Best score (highest of the 5 stored scores)
 Uint32 startTime = 0; // Game start time
-int isPaused = 0;
+int isPaused = 0; // Pause state
 int gameMode = 0; // 0: Player, 1: Machine, 2: Player vs Machine
 int inMenu = 1; // 1: Show menu, 0: Show game
 char playerName[50] = ""; // Player's name
 int nameEntered = 0; // Flag to check if name has been entered
+
 // Define menu button rectangles
 SDL_Rect buttonPlayer = { (WINDOW_WIDTH - 350) / 2, 150, 350, 60 }; // Player Mode
 SDL_Rect buttonMachine = { (WINDOW_WIDTH - 350) / 2, 250, 350, 60 }; // Machine Mode
 SDL_Rect buttonPvsM = { (WINDOW_WIDTH - 350) / 2, 350, 350, 60 };    // Player vs Machine
 SDL_Rect buttonQuit = { (WINDOW_WIDTH - 350) / 2, 450, 350, 60 };    // Quit
+
+
+// Function to get the color for a specific tile value
 // Function to get the color for a specific tile value
 SDL_Color getTileColor(int value) {
     SDL_Color color;
     switch (value) {
-        case 2:    color = (SDL_Color){255, 182, 193, 255}; break; // Light Pink
-        case 4:    color = (SDL_Color){255, 105, 180, 255}; break; // Hot Pink
-        case 8:    color = (SDL_Color){255, 20, 147, 255}; break;  // Deep Pink
-        case 16:   color = (SDL_Color){199, 21, 133, 255}; break;  // Medium Violet Red
-        case 32:   color = (SDL_Color){218, 112, 214, 255}; break; // Orchid
-        case 64:   color = (SDL_Color){221, 160, 221, 255}; break; // Plum
-        case 128:  color = (SDL_Color){216, 191, 216, 255}; break; // Thistle
-        case 256:  color = (SDL_Color){230, 230, 250, 255}; break; // Lavender
-        case 512:  color = (SDL_Color){255, 228, 225, 255}; break; // Misty Rose
-        case 1024: color = (SDL_Color){255, 192, 203, 255}; break; // Pink
-        case 2048: color = (SDL_Color){255, 182, 193, 255}; break; // Light Pink
+        case 2:    color = (SDL_Color){255, 223, 186, 255}; break; // Light Peach
+        case 4:    color = (SDL_Color){153, 204, 255, 255}; break; // Light Blue
+        case 8:    color = (SDL_Color){255, 143, 143, 255}; break; // Coral
+        case 16:   color = (SDL_Color){255, 204, 153, 255}; break; // Light Orange
+        case 32:   color = (SDL_Color){255, 153, 102, 255}; break; // Darker Orange
+        case 64:   color = (SDL_Color){255, 102, 102, 255}; break; // Red
+        case 128:  color = (SDL_Color){204, 255, 153, 255}; break; // Light Green
+        case 256:  color = (SDL_Color){153, 255, 153, 255}; break; // Mint Green
+        case 512:  color = (SDL_Color){102, 255, 153, 255}; break; // Bright Green
+        case 1024: color = (SDL_Color){230, 230, 250, 255}; break; // Lavender
+        case 2048: color = (SDL_Color){102, 153, 255, 255}; break; // Royal Blue
         default:   color = (SDL_Color){255, 182, 193, 255}; break; // Default to Light Pink
     }
     return color;
 }
-
-
 // Function to initialize the grid
 void initializeGrid(int grid[SIZE][SIZE]) {
     for (int r = 0; r < SIZE; r++) {
@@ -110,6 +115,7 @@ void moveUp(int grid[SIZE][SIZE], int *score) {
         }
     }
 }
+
 // Function to handle moving down
 void moveDown(int grid[SIZE][SIZE], int *score) {
     for (int c = 0; c < SIZE; c++) {
@@ -181,6 +187,7 @@ void moveRight(int grid[SIZE][SIZE], int *score) {
         }
     }
 }
+
 // Function to check if there are no more valid moves left
 int isFull(int grid[SIZE][SIZE]) {
     for (int r = 0; r < SIZE; r++) {
@@ -242,6 +249,7 @@ void renderGrid(SDL_Renderer *renderer, TTF_Font *font, int grid[SIZE][SIZE], in
         }
     }
 }
+
 // Function to render the main menu
 void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Clear the screen with a black background
@@ -295,6 +303,7 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Update the screen
     SDL_RenderPresent(renderer);
 }
+
 // Function to render the pause button
 void renderPauseButton(SDL_Renderer *renderer) {
     int buttonRadius = 40; // Radius of the circular button
@@ -329,7 +338,8 @@ void renderPauseButton(SDL_Renderer *renderer) {
     SDL_RenderFillRect(renderer, &bar1);
     SDL_RenderFillRect(renderer, &bar2);
 }
-//pause menu
+
+// Function to render the pause menu
 void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Clear the screen with a semi-transparent overlay
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 200); // Semi-transparent black
@@ -418,7 +428,8 @@ void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Update the screen
     SDL_RenderPresent(renderer);
 }
-//handle pause menu
+
+// Function to handle pause menu interactions
 int handlePauseMenu(SDL_Event *event) {
     int mouseX = event->button.x;
     int mouseY = event->button.y;
@@ -444,6 +455,7 @@ int handlePauseMenu(SDL_Event *event) {
 
     return 0; // No action
 }
+
 // Function to render the name input screen
 void renderNameInput(SDL_Renderer *renderer, TTF_Font *font, const char *inputText) {
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
@@ -463,6 +475,7 @@ void renderNameInput(SDL_Renderer *renderer, TTF_Font *font, const char *inputTe
 
     SDL_RenderPresent(renderer); // Update the screen
 }
+
 // Function to save the game state
 void saveGameState(int grid[SIZE][SIZE], int score, Uint32 startTime) {
     FILE *file = fopen("saved_game.dat", "wb");
@@ -473,6 +486,8 @@ void saveGameState(int grid[SIZE][SIZE], int score, Uint32 startTime) {
         fclose(file);
     }
 }
+
+// Function to load the game state
 void loadGameState(int grid[SIZE][SIZE], int *score, Uint32 *startTime) {
     FILE *file = fopen("saved_game.dat", "rb");
     if (file) {
@@ -482,6 +497,7 @@ void loadGameState(int grid[SIZE][SIZE], int *score, Uint32 *startTime) {
         fclose(file);
     }
 }
+
 // Function to render directional buttons
 void renderDirectionalButtons(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color buttonColor = {255, 182, 193, 255}; // Pink color
@@ -546,6 +562,7 @@ void machineMove(int grid[SIZE][SIZE], int *score) {
     }
     addNewTile(grid); // Add a new tile after the move
 }
+
 // Function to render game info (score, best score, and time)
 void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color color = {255, 255, 255, 255}; // White text
@@ -579,6 +596,7 @@ void renderGameInfo(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_DestroyTexture(texture);
     TTF_CloseFont(smallFont);
 }
+
 // Function to save high scores
 void saveScores(HighScore highScores[], int count) {
     FILE *file = fopen("highscores.dat", "wb");
@@ -818,6 +836,8 @@ void renderWin(SDL_Renderer *renderer, TTF_Font *font) {
         SDL_Delay(16); // Reduce CPU usage
     }
 }
+
+// Main function
 int main(int argc, char* argv[]) {
     // Initialize SDL and SDL_ttf
     if (SDL_Init(SDL_INIT_VIDEO) < 0 || TTF_Init() == -1) {
