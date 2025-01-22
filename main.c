@@ -306,7 +306,7 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
 
 // Function to render the pause button
 void renderPauseButton(SDL_Renderer *renderer) {
-    int buttonRadius = 40; // Radius of the circular button
+    int buttonRadius = 30; // Radius of the circular button
     int buttonX = WINDOW_WIDTH - 50; // Position in the top-right corner
     int buttonY = 50;
 
@@ -347,7 +347,7 @@ void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderFillRect(renderer, &overlay);
 
     // Render the title "PAUSE MENU"
-    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72); // Larger font for the title
+    TTF_Font *titleFont = TTF_OpenFont("arial.ttf", 72);
     if (!titleFont) {
         printf("Error loading title font: %s\n", TTF_GetError());
         return;
