@@ -36,7 +36,25 @@ SDL_Rect buttonPlayer = { (WINDOW_WIDTH - 350) / 2, 150, 350, 60 }; // Player Mo
 SDL_Rect buttonMachine = { (WINDOW_WIDTH - 350) / 2, 250, 350, 60 }; // Machine Mode
 SDL_Rect buttonPvsM = { (WINDOW_WIDTH - 350) / 2, 350, 350, 60 };    // Player vs Machine
 SDL_Rect buttonQuit = { (WINDOW_WIDTH - 350) / 2, 450, 350, 60 };    // Quit
-
+// Function to get the color for a specific tile value
+SDL_Color getTileColor(int value) {
+    SDL_Color color;
+    switch (value) {
+        case 2:    color = (SDL_Color){255, 182, 193, 255}; break; // Light Pink
+        case 4:    color = (SDL_Color){255, 105, 180, 255}; break; // Hot Pink
+        case 8:    color = (SDL_Color){255, 20, 147, 255}; break;  // Deep Pink
+        case 16:   color = (SDL_Color){199, 21, 133, 255}; break;  // Medium Violet Red
+        case 32:   color = (SDL_Color){218, 112, 214, 255}; break; // Orchid
+        case 64:   color = (SDL_Color){221, 160, 221, 255}; break; // Plum
+        case 128:  color = (SDL_Color){216, 191, 216, 255}; break; // Thistle
+        case 256:  color = (SDL_Color){230, 230, 250, 255}; break; // Lavender
+        case 512:  color = (SDL_Color){255, 228, 225, 255}; break; // Misty Rose
+        case 1024: color = (SDL_Color){255, 192, 203, 255}; break; // Pink
+        case 2048: color = (SDL_Color){255, 182, 193, 255}; break; // Light Pink
+        default:   color = (SDL_Color){255, 182, 193, 255}; break; // Default to Light Pink
+    }
+    return color;
+}
 
 
 // Function to initialize the grid
@@ -191,21 +209,22 @@ int checkWin(int grid[SIZE][SIZE]) {
 
 // Function to render the grid
 void renderGrid(SDL_Renderer *renderer, TTF_Font *font, int grid[SIZE][SIZE], int xOffset, int yOffset, int *score) {
-    SDL_Color color = {255, 255, 255, 255}; // Set text color to white
+    SDL_Color textColor = {0, 0, 0, 255}; // Black text for contrast
     char text[50];
 
-    // Render the grid
     for (int r = 0; r < SIZE; r++) {
         for (int c = 0; c < SIZE; c++) {
             SDL_Rect cellRect = {c * (GRID_SIZE + GRID_SPACING) + xOffset, r * (GRID_SIZE + GRID_SPACING) + yOffset, GRID_SIZE, GRID_SIZE};
 
-            SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+            // Set tile color based on value
+            SDL_Color tileColor = getTileColor(grid[r][c]);
+            SDL_SetRenderDrawColor(renderer, tileColor.r, tileColor.g, tileColor.b, tileColor.a);
             SDL_RenderFillRect(renderer, &cellRect);
 
             if (grid[r][c] != 0) {
-                sprintf(text, "%d", grid[r][c]); // Convert cell value to string
-                SDL_Surface *surface = TTF_RenderText_Solid(font, text, color); // Render text
-                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture
+                sprintf(text, "%d", grid[r][c]);
+                SDL_Surface *surface = TTF_RenderText_Solid(font, text, textColor);
+                SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
 
                 int textWidth = surface->w;
                 int textHeight = surface->h;
@@ -216,14 +235,13 @@ void renderGrid(SDL_Renderer *renderer, TTF_Font *font, int grid[SIZE][SIZE], in
                     textHeight
                 };
 
-                SDL_RenderCopy(renderer, texture, NULL, &textRect); // Draw texture
-                SDL_FreeSurface(surface); // Free surface
-                SDL_DestroyTexture(texture); // Free texture
+                SDL_RenderCopy(renderer, texture, NULL, &textRect);
+                SDL_FreeSurface(surface);
+                SDL_DestroyTexture(texture);
             }
         }
     }
 }
-
 // Function to render the main menu
 void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Clear the screen with a black background
@@ -279,7 +297,7 @@ void renderMainMenu(SDL_Renderer *renderer, TTF_Font *font) {
 }
 // Function to render the pause button
 void renderPauseButton(SDL_Renderer *renderer) {
-    int buttonRadius = 25; // Radius of the circular button
+    int buttonRadius = 40; // Radius of the circular button
     int buttonX = WINDOW_WIDTH - 50; // Position in the top-right corner
     int buttonY = 50;
 
@@ -297,12 +315,20 @@ void renderPauseButton(SDL_Renderer *renderer) {
 
     // Draw the pause symbol (two vertical bars)
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black color
-    SDL_Rect bar1 = {buttonX - 8, buttonY - 10, 5, 20}; // Left bar
-    SDL_Rect bar2 = {buttonX + 3, buttonY - 10, 5, 20}; // Right bar
+
+    // Adjust the size and position of the bars
+    int barWidth = 10;  // Width of each bar
+    int barHeight = 30; // Height of each bar
+    int barSpacing = 5; // Space between the bars
+
+    // Calculate the positions of the bars
+    SDL_Rect bar1 = {buttonX - barSpacing - barWidth, buttonY - (barHeight / 2), barWidth, barHeight}; // Left bar
+    SDL_Rect bar2 = {buttonX + barSpacing, buttonY - (barHeight / 2), barWidth, barHeight}; // Right bar
+
+    // Draw the bars
     SDL_RenderFillRect(renderer, &bar1);
     SDL_RenderFillRect(renderer, &bar2);
 }
-
 //pause menu
 void renderPauseMenu(SDL_Renderer *renderer, TTF_Font *font) {
     // Clear the screen with a semi-transparent overlay
