@@ -545,22 +545,48 @@ void renderDirectionalButtons(SDL_Renderer *renderer, TTF_Font *font) {
 
 // Function to handle machine moves
 void machineMove(int grid[SIZE][SIZE], int *score) {
-    int move = rand() % 4; // Randomly choose a move (0: UP, 1: DOWN, 2: LEFT, 3: RIGHT)
-    switch (move) {
-        case 0:
-            moveUp(grid, score); // Update the machine's score
-            break;
-        case 1:
-            moveDown(grid, score); // Update the machine's score
-            break;
-        case 2:
-            moveLeft(grid, score); // Update the machine's score
-            break;
-        case 3:
-            moveRight(grid, score); // Update the machine's score
-            break;
+    int move;
+    int validMove = 0;
+    int attempts = 0;
+    int maxAttempts = 10; // Maximum attempts to find a valid move
+
+    // Try to find a valid move
+    while (!validMove && attempts < maxAttempts) {
+        move = rand() % 4; // Randomly choose a move (0: UP, 1: DOWN, 2: LEFT, 3: RIGHT)
+
+        // Make a copy of the grid to test the move
+        int testGrid[SIZE][SIZE];
+        memcpy(testGrid, grid, SIZE * SIZE * sizeof(int));
+
+        switch (move) {
+            case 0:
+                moveUp(testGrid, score);
+                break;
+            case 1:
+                moveDown(testGrid, score);
+                break;
+            case 2:
+                moveLeft(testGrid, score);
+                break;
+            case 3:
+                moveRight(testGrid, score);
+                break;
+        }
+
+        // Check if the move changed the grid
+        if (memcmp(grid, testGrid, SIZE * SIZE * sizeof(int)) != 0) {
+            validMove = 1; // The move is valid
+            memcpy(grid, testGrid, SIZE * SIZE * sizeof(int)); // Apply the move to the actual grid
+        }
+
+        attempts++;
     }
-    addNewTile(grid); // Add a new tile after the move
+
+    if (validMove) {
+        addNewTile(grid); // Add a new tile after a valid move
+    } else {
+        printf("No valid moves found. Game Over!\n");
+    }
 }
 
 // Function to render game info (score, best score, and time)
@@ -1114,8 +1140,18 @@ int main(int argc, char* argv[]) {
         // Machine move logic (only in Machine or Player vs Machine mode)
         if ((gameMode == 1 || gameMode == 2) && !isPaused) {
             if (SDL_GetTicks() - machineMoveTime > 1000) { // Machine moves every 1 second
+                printf("Machine is making a move...\n");
                 machineMove(machineGrid, &machine_score); // Pass machine_score by reference
                 machineMoveTime = SDL_GetTicks(); // Reset the timer
+
+                // Debug: Print the machine's grid after the move
+                printf("Machine's grid after move:\n");
+                for (int r = 0; r < SIZE; r++) {
+                    for (int c = 0; c < SIZE; c++) {
+                        printf("%4d ", machineGrid[r][c]);
+                    }
+                    printf("\n");
+                }
             }
         }
 
@@ -1158,14 +1194,27 @@ int main(int argc, char* argv[]) {
 
         // Check for win condition
         if (checkWin(grid)) {
+            printf("You Win!\n");
             renderWin(renderer, font);
+            resetGameState(); // Reset the game state
             inMenu = 1; // Return to menu
         }
 
         // Check for game over condition
         if (isFull(grid)) {
+            printf("Player's grid is full. Game Over!\n");
             renderGameOver(renderer, font);
+            resetGameState(); // Reset the game state
             inMenu = 1; // Return to menu
+        }
+
+        if (gameMode == 1 || gameMode == 2) {
+            if (isFull(machineGrid)) {
+                printf("Machine's grid is full. Game Over!\n");
+                renderGameOver(renderer, font);
+                resetGameState(); // Reset the game state
+                inMenu = 1; // Return to menu
+            }
         }
 
         SDL_Delay(16); // Add a small delay to reduce CPU usage
